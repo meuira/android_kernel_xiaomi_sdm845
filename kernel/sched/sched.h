@@ -713,6 +713,11 @@ static inline long se_runnable(struct sched_entity *se)
 	return scale_load_down(se->runnable_weight);
 }
 
+static inline bool sched_asym_prefer(int a, int b)
+{
+	return arch_asym_cpu_priority(a) > arch_asym_cpu_priority(b);
+}
+
 struct max_cpu_capacity {
 	raw_spinlock_t lock;
 	unsigned long val;
@@ -1336,6 +1341,7 @@ struct sched_group {
 
 	unsigned int group_weight;
 	struct sched_group_capacity *sgc;
+	int asym_prefer_cpu;		/* cpu of highest priority in group */
 	const struct sched_group_energy *sge;
 
 	/*
