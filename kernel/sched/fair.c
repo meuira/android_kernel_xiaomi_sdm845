@@ -3024,6 +3024,31 @@ int sched_set_wake_up_idle(struct task_struct *p, int wake_up_idle)
 EXPORT_SYMBOL(sched_set_wake_up_idle);
 #endif
 
+static inline void cfs_rq_util_change(struct cfs_rq *cfs_rq)
+{
+        struct rq *rq = rq_of(cfs_rq);
+
+        if (&rq->cfs == cfs_rq) {
+                /*
+                 * There are a few boundary cases this might miss but it should
+                 * get called often enough that that should (hopefully) not be
+                 * a real problem -- added to that it only calls on the local
+                 * CPU, so if we enqueue remotely we'll miss an update, but
+                 * the next tick/schedule should update.
+                 *
+                 * It will not get called when we go idle, because the idle
+                 * thread is a different class (!fair), nor will the utilization
+                 * number include things like RT tasks.
+                 *
+                 * As is, the util number is not freq-invariant (we'd have to
+                 * implement arch_scale_freq_capacity() for that).
+                 *
+                 * See cpu_util().
+                 */
+                cpufreq_update_util(rq, 0);
+        }
+}
+
 #ifdef CONFIG_SMP
 #ifdef CONFIG_FAIR_GROUP_SCHED
 /**
@@ -3342,31 +3367,6 @@ static inline int propagate_entity_load_avg(struct sched_entity *se)
 static inline void add_tg_cfs_propagate(struct cfs_rq *cfs_rq, long runnable_sum) {}
 
 #endif /* CONFIG_FAIR_GROUP_SCHED */
-
-static inline void cfs_rq_util_change(struct cfs_rq *cfs_rq)
-{
-	struct rq *rq = rq_of(cfs_rq);
-
-	if (&rq->cfs == cfs_rq) {
-		/*
-		 * There are a few boundary cases this might miss but it should
-		 * get called often enough that that should (hopefully) not be
-		 * a real problem -- added to that it only calls on the local
-		 * CPU, so if we enqueue remotely we'll miss an update, but
-		 * the next tick/schedule should update.
-		 *
-		 * It will not get called when we go idle, because the idle
-		 * thread is a different class (!fair), nor will the utilization
-		 * number include things like RT tasks.
-		 *
-		 * As is, the util number is not freq-invariant (we'd have to
-		 * implement arch_scale_freq_capacity() for that).
-		 *
-		 * See cpu_util().
-		 */
-		cpufreq_update_util(rq, 0);
-	}
-}
 
 /**
  * update_cfs_rq_load_avg - update the cfs_rq's load/util averages
@@ -3723,7 +3723,7 @@ util_est_dequeue(struct cfs_rq *cfs_rq, struct task_struct *p, bool task_sleep)
 	 *
 	 * When *p completes an activation we can consolidate another sample
 	 * of the task size. This is done by storing the current PELT value
-	 * as ue.enqueued and by using this value to update the Exponential
+{	 * as ue.enqueued and by using this value to update the Exponential
 	 * Weighted Moving Average (EWMA):
 	 *
 	 *  ewma(t) = w *  task_util(p) + (1-w) * ewma(t-1)
@@ -3750,7 +3750,7 @@ done:
 
 static inline void update_load_avg(struct cfs_rq *cfs_rq, struct sched_entity *se, int not_used1)
 {
-	cpufreq_update_util(rq_of(cfs_rq), 0);
+	cfs_rq_util_change(cfs_rq);
 }
 
 static inline void remove_entity_load_avg(struct sched_entity *se) {}
