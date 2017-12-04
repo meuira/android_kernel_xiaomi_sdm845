@@ -209,20 +209,17 @@ static void sugov_get_util(unsigned long *util, unsigned long *max, int cpu,
 			   u64 time)
 {
 	struct rq *rq = cpu_rq(cpu);
-	unsigned long max_cap, rt;
-	struct sugov_cpu *loadcpu = &per_cpu(sugov_cpu, cpu);
-	s64 delta;
+	unsigned long util_cfs = cpu_util_cfs(rq);
+	unsigned long util_dl  = cpu_util_dl(rq);
 
-	max_cap = arch_scale_cpu_capacity(NULL, cpu);
-	*max = max_cap;
+	*max = arch_scale_cpu_capacity(NULL, cpu);
 
-	sched_avg_update(rq);
-	delta = time - rq->age_stamp;
-	if (unlikely(delta < 0))
-		delta = 0;
-	rt = div64_u64(rq->rt_avg, sched_avg_period() + delta);
-	rt = (rt * max_cap) >> SCHED_CAPACITY_SHIFT;
-	*util = min(rq->cfs.avg.util_avg + rt, max_cap);
+	/*
+	 * Ideally we would like to set util_dl as min/guaranteed freq and
+	 * util_cfs + util_dl as requested freq. However, cpufreq is not yet
+	 * ready for such an interface. So, we only do the latter for now.
+	 */
+	*util = min(util_cfs + util_dl, *max);
 }
 
 static void sugov_set_iowait_boost(struct sugov_cpu *sg_cpu, u64 time,
@@ -409,9 +406,9 @@ static void sugov_irq_work(struct irq_work *irq_work)
 	sg_policy = container_of(irq_work, struct sugov_policy, irq_work);
 
 	/*
-	 * For RT and deadline tasks, the schedutil governor shoots the
-	 * frequency to maximum. Special care must be taken to ensure that this
-	 * kthread doesn't result in the same behavior.
+	 * For RT tasks, the schedutil governor shoots the frequency to maximum.
+	 * Special care must be taken to ensure that this kthread doesn't result
+	 * in the same behavior.
 	 *
 	 * This is (mostly) guaranteed by the work_in_progress flag. The flag is
 	 * updated only at the end of the sugov_work() function and before that
