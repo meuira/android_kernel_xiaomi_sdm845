@@ -459,11 +459,9 @@ static inline int sched_unisolate_cpu_unlocked(int cpu)
 
 #if defined(CONFIG_SMP) && defined(CONFIG_NO_HZ_COMMON)
 extern void nohz_balance_enter_idle(int cpu);
-extern void set_cpu_sd_state_idle(void);
 extern int get_nohz_timer_target(void);
 #else
 static inline void nohz_balance_enter_idle(int cpu) { }
-static inline void set_cpu_sd_state_idle(void) { }
 #endif
 
 /*
