@@ -9227,6 +9227,19 @@ static inline bool others_have_blocked(struct rq *rq)
 	return false;
 }
 
+static inline bool cfs_rq_has_blocked(struct cfs_rq *cfs_rq)
+{
+	if (cfs_rq->avg.load_avg)
+		return true;
+
+	if (cfs_rq->avg.util_avg)
+		return true;
+
+	return false;
+}
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+
 static inline bool cfs_rq_is_decayed(struct cfs_rq *cfs_rq)
 {
 	if (cfs_rq->load.weight)
@@ -9243,8 +9256,6 @@ static inline bool cfs_rq_is_decayed(struct cfs_rq *cfs_rq)
 
 	return true;
 }
-
-#ifdef CONFIG_FAIR_GROUP_SCHED
 
 static void update_blocked_averages(int cpu)
 {
@@ -9281,7 +9292,9 @@ static void update_blocked_averages(int cpu)
 		 */
 		if (cfs_rq_is_decayed(cfs_rq))
 			list_del_leaf_cfs_rq(cfs_rq);
-		else
+
+		/* Don't need periodic decay once load/util_avg are null */
+		if (cfs_rq_has_blocked(cfs_rq))
 			done = false;
 	}
 
@@ -9361,7 +9374,7 @@ static inline void update_blocked_averages(int cpu)
 	update_irq_load_avg(rq, 0);
 #ifdef CONFIG_NO_HZ_COMMON
 	rq->last_blocked_load_update_tick = jiffies;
-	if (cfs_rq_is_decayed(cfs_rq))
+	if (!cfs_rq_has_blocked(cfs_rq))
 		rq->has_blocked_load = 0;
 #endif
 	raw_spin_unlock_irqrestore(&rq->lock, flags);
