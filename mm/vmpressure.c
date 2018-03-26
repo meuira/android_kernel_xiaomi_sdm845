@@ -565,7 +565,7 @@ int vmpressure_register_event(struct mem_cgroup *memcg,
 	/* Find required level */
 	token = strsep(&spec, ",");
 	level = str_to_level(token);
-	if (level == -1) {
+	if ((int)level == -1) {
 		ret = -EINVAL;
 		goto out;
 	}
@@ -574,7 +574,7 @@ int vmpressure_register_event(struct mem_cgroup *memcg,
 	token = strsep(&spec, ",");
 	if (token) {
 		mode = str_to_mode(token);
-		if (mode == -1) {
+		if ((int)mode == -1) {
 			ret = -EINVAL;
 			goto out;
 		}
