@@ -589,20 +589,6 @@ extern struct cpufreq_governor cpufreq_gov_sched;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_sched)
 #endif
 
-static inline bool cpufreq_can_do_remote_dvfs(struct cpufreq_policy *policy)
-{
-	/*
-	 * Allow remote callbacks if:
-	 * - dvfs_possible_from_any_cpu flag is set
-	 * - the local and remote CPUs share cpufreq policy
-	 */
-	if (policy->dvfs_possible_from_any_cpu ||
-	    cpumask_test_cpu(smp_processor_id(), policy->cpus))
-		return true;
-
-	return false;
-}
-
 /*********************************************************************
  *                     FREQUENCY TABLE HELPERS                       *
  *********************************************************************/
