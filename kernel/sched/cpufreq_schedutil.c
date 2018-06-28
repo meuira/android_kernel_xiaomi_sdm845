@@ -64,11 +64,7 @@ struct sugov_cpu {
 	u64 last_update;
 
 	/* The fields below are only needed when sharing a policy. */
-	unsigned long util_cfs;
-	unsigned long util_dl;
 	unsigned long bw_dl;
-	unsigned long util_rt;
-	unsigned long util_irq;
 	unsigned long max;
 	unsigned int flags;
 	unsigned int cpu;
@@ -207,34 +203,28 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 	return l_freq;
 }
 
-static void sugov_get_util(struct sugov_cpu *sg_cpu)
+static unsigned long sugov_get_util(struct sugov_cpu *sg_cpu)
 {
 	struct rq *rq = cpu_rq(sg_cpu->cpu);
+	unsigned long util, irq, max;
 
-	sg_cpu->max = arch_scale_cpu_capacity(NULL, sg_cpu->cpu);
-	sg_cpu->util_cfs = cpu_util_cfs(rq);
-	sg_cpu->util_dl  = cpu_util_dl(rq);
-	sg_cpu->bw_dl    = cpu_bw_dl(rq);
-	sg_cpu->util_rt  = cpu_util_rt(rq);
-	sg_cpu->util_irq = cpu_util_irq(rq);
-}
+	sg_cpu->max = max = arch_scale_cpu_capacity(NULL, sg_cpu->cpu);
+	sg_cpu->bw_dl = cpu_bw_dl(rq);
 
-static unsigned long sugov_aggregate_util(struct sugov_cpu *sg_cpu)
-{
-	unsigned long util, max = sg_cpu->max;
+	irq = cpu_util_irq(rq);
 
-	if (unlikely(sg_cpu->util_irq >= max))
+	if (unlikely(irq >= max))
 		return max;
 
 	/* Sum rq utilization */
-	util = sg_cpu->util_cfs;
-	util += sg_cpu->util_rt;
+	util = cpu_util_cfs(rq);
+	util += cpu_util_rt(rq);
 
 	/*
 	 * Interrupt time is not seen by RQS utilization so we can compare
 	 * them with the CPU capacity
 	 */
-	if ((util + sg_cpu->util_dl) >= max)
+	if ((util + cpu_util_dl(rq)) >= max)
 		return max;
 
 	/*
@@ -252,11 +242,11 @@ static unsigned long sugov_aggregate_util(struct sugov_cpu *sg_cpu)
 	 */
 
 	/* Weight RQS utilization to normal context window */
-	util *= (max - sg_cpu->util_irq);
+	util *= (max - irq);
 	util /= max;
 
 	/* Add interrupt utilization */
-	util += sg_cpu->util_irq;
+	util += irq;
 
 	/* Add DL bandwidth requirement */
 	util += sg_cpu->bw_dl;
@@ -370,9 +360,8 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 		return;
 
 	busy = sugov_cpu_is_busy(sg_cpu);
-	sugov_get_util(sg_cpu);
+	util = sugov_get_util(sg_cpu);
 	max = sg_cpu->max;
-	util = sugov_aggregate_util(sg_cpu);
 	sugov_iowait_boost(sg_cpu, &util, &max);
 	next_f = get_next_freq(sg_policy, util, max);
 	/*
@@ -416,8 +405,8 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 			continue;
 		}
 
+		j_util = sugov_get_util(j_sg_cpu);
 		j_max = j_sg_cpu->max;
-		j_util = sugov_aggregate_util(j_sg_cpu);
 		if (j_util * max > j_max * util) {
 			util = j_util;
 			max = j_max;
@@ -438,12 +427,6 @@ static void sugov_update_shared(struct update_util_data *hook, u64 time,
 
 	if (flags & SCHED_CPUFREQ_PL)
 		return;
-
-<<<<<<< HEAD
-	sugov_get_util(&util, &max, sg_cpu->cpu, time);
-=======
-	flags &= ~SCHED_CPUFREQ_RT;
->>>>>>> ac4a078ad65a9 (sched/cpufreq: Split utilization signals)
 
 	raw_spin_lock(&sg_policy->update_lock);
 
