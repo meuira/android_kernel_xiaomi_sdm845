@@ -108,3 +108,5 @@ SCHED_FEAT(FBT_STRICT_ORDER, false)
  * OFF: schedtune.prefer_idle is honored as is.
  */
 SCHED_FEAT(EAS_USE_NEED_IDLE, true)
+
+SCHED_FEAT(SUGOV_RT_MAX_FREQ, false)
