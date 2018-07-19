@@ -632,6 +632,11 @@ struct rt_rq {
 #endif
 };
 
+static inline bool rt_rq_is_runnable(struct rt_rq *rt_rq)
+{
+	return rt_rq->rt_queued && rt_rq->rt_nr_running;
+}
+
 /* Deadline class' related fields in a runqueue */
 struct dl_rq {
 	/* runqueue is an rbtree, ordered by deadline */
@@ -3288,7 +3293,6 @@ find_first_cpu_bit(struct task_struct *p, const cpumask_t *search_cpus,
 #define find_first_cpu_bit(...) -1
 #endif
 
-#ifdef CONFIG_SMP
 static inline void sched_irq_work_queue(struct irq_work *work)
 {
 	if (likely(cpu_online(raw_smp_processor_id())))
@@ -3302,10 +3306,19 @@ static inline unsigned long cpu_util_rt(struct rq *rq)
 	return READ_ONCE(rq->avg_rt.util_avg);
 }
 
-#if defined(CONFIG_IRQ_TIME_ACCOUNTING) || defined(CONFIG_PARAVIRT_TIME_ACCOUNTING)
+#ifdef HAVE_SCHED_AVG_IRQ
 static inline unsigned long cpu_util_irq(struct rq *rq)
 {
 	return rq->avg_irq.util_avg;
+}
+static inline
+unsigned long scale_irq_capacity(unsigned long util, unsigned long irq, unsigned long max)
+{
+	util *= (max - irq);
+	util /= max;
+
+        return util;
+
 }
 #else
 static inline unsigned long cpu_util_irq(struct rq *rq)
@@ -3313,7 +3326,11 @@ static inline unsigned long cpu_util_irq(struct rq *rq)
 	return 0;
 }
 
-#endif
+static inline
+unsigned long scale_irq_capacity(unsigned long util, unsigned long irq, unsigned long max)
+{
+	return util;
+}
 #endif
 static inline unsigned long cpu_bw_dl(struct rq *rq)
 {
