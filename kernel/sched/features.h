@@ -112,3 +112,9 @@
 #define SCHED_FEAT_EAS_USE_NEED_IDLE 1
 
 #define SCHED_FEAT_SUGOV_RT_MAX_FREQ 0
+
+/*
+ * Use the Simplified Energy Model for EAS accounting only for
+ * active costs of CPUs.
+ */
+#define SCHED_FEAT_EAS_SIMPLIFIED_EM 1
