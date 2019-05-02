@@ -189,9 +189,6 @@ unsigned int max_possible_freq = 1;
  * capacity (cpu_power) of cpus.
  */
 unsigned int min_max_freq = 1;
-
-unsigned int max_capacity = 1024; /* max(rq->capacity) */
-unsigned int min_capacity = 1024; /* min(rq->capacity) */
 unsigned int max_possible_capacity = 1024; /* max(rq->max_possible_capacity) */
 unsigned int
 min_max_possible_capacity = 1024; /* min(rq->max_possible_capacity) */
@@ -2155,7 +2152,6 @@ static struct sched_cluster *alloc_new_cluster(const struct cpumask *cpus)
 	INIT_LIST_HEAD(&cluster->list);
 	cluster->max_power_cost		=	1;
 	cluster->min_power_cost		=	1;
-	cluster->capacity		=	1024;
 	cluster->max_possible_capacity	=	1024;
 	cluster->efficiency		=	1;
 	cluster->load_scale_factor	=	1024;
@@ -2202,22 +2198,13 @@ static int compute_max_possible_capacity(struct sched_cluster *cluster)
 {
 	int capacity = 1024;
 
-	capacity *= capacity_scale_cpu_efficiency(cluster);
+	capacity *= (1024 * cluster->efficiency) / min_possible_efficiency;
 	capacity >>= 10;
 
 	capacity *= (1024 * cluster->max_possible_freq) / min_max_freq;
 	capacity >>= 10;
 
 	return capacity;
-}
-
-void walt_update_min_max_capacity(void)
-{
-	unsigned long flags;
-
-	acquire_rq_locks_irqsave(cpu_possible_mask, &flags);
-	__update_min_max_capacity();
-	release_rq_locks_irqrestore(cpu_possible_mask, &flags);
 }
 
 unsigned int max_power_cost = 1;
@@ -2340,7 +2327,6 @@ static void update_all_clusters_stats(void)
 	for_each_sched_cluster(cluster) {
 		u64 mpc;
 
-		cluster->capacity = compute_capacity(cluster);
 		mpc = cluster->max_possible_capacity =
 			compute_max_possible_capacity(cluster);
 		cluster->load_scale_factor = compute_load_scale_factor(cluster);
@@ -2359,7 +2345,6 @@ static void update_all_clusters_stats(void)
 	max_possible_capacity = highest_mpc;
 	min_max_possible_capacity = lowest_mpc;
 
-	__update_min_max_capacity();
 	sched_update_freq_max_load(cpu_possible_mask);
 	release_rq_locks_irqrestore(cpu_possible_mask, &flags);
 }
@@ -2395,7 +2380,6 @@ struct sched_cluster init_cluster = {
 	.id			=	0,
 	.max_power_cost		=	1,
 	.min_power_cost		=	1,
-	.capacity		=	1024,
 	.max_possible_capacity	=	1024,
 	.efficiency		=	1,
 	.load_scale_factor	=	1024,
@@ -2991,11 +2975,8 @@ void update_cpu_cluster_capacity(const cpumask_t *cpus)
 		cluster = cpu_rq(i)->cluster;
 		cpumask_andnot(&cpumask, &cpumask, &cluster->cpus);
 
-		cluster->capacity = compute_capacity(cluster);
 		cluster->load_scale_factor = compute_load_scale_factor(cluster);
 	}
-
-	__update_min_max_capacity();
 
 	release_rq_locks_irqrestore(cpu_possible_mask, &flags);
 }

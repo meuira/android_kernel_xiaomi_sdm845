@@ -71,7 +71,6 @@ struct sched_cluster {
 	int max_power_cost;
 	int min_power_cost;
 	int max_possible_capacity;
-	int capacity;
 	int efficiency; /* Differentiate cpus with different IPC capability */
 	int load_scale_factor;
 	unsigned int exec_scale_factor;
@@ -1406,12 +1405,6 @@ enum sched_boost_policy {
 #define FULL_THROTTLE_BOOST 1
 #define CONSERVATIVE_BOOST 2
 #define RESTRAINED_BOOST 3
-
-/*
- * Returns the rq capacity of any rq in a group. This does not play
- * well with groups where rq capacity can change independently.
- */
-#define group_rq_capacity(group) cpu_capacity(group_first_cpu(group))
 
 #ifdef CONFIG_CGROUP_SCHED
 
@@ -2783,8 +2776,6 @@ extern unsigned int max_possible_freq;
 extern unsigned int min_max_freq;
 extern unsigned int max_possible_efficiency;
 extern unsigned int min_possible_efficiency;
-extern unsigned int max_capacity;
-extern unsigned int min_capacity;
 extern unsigned int max_load_scale_factor;
 extern unsigned int max_possible_capacity;
 extern unsigned int min_max_possible_capacity;
@@ -2809,11 +2800,6 @@ extern int update_preferred_cluster(struct related_thread_group *grp,
 extern void set_preferred_cluster(struct related_thread_group *grp);
 extern void add_new_task_to_grp(struct task_struct *new);
 extern unsigned int update_freq_aggregate_threshold(unsigned int threshold);
-
-static inline int cpu_capacity(int cpu)
-{
-	return cpu_rq(cpu)->cluster->capacity;
-}
 
 static inline int cpu_max_possible_capacity(int cpu)
 {
@@ -2853,25 +2839,6 @@ static inline unsigned int cpu_max_freq(int cpu)
 static inline unsigned int cpu_max_possible_freq(int cpu)
 {
 	return cpu_rq(cpu)->cluster->max_possible_freq;
-}
-
-/* Keep track of max/min capacity possible across CPUs "currently" */
-static inline void __update_min_max_capacity(void)
-{
-	int i;
-	int max_cap = 0, min_cap = INT_MAX;
-
-	for_each_possible_cpu(i) {
-
-		if (!cpu_active(i))
-			continue;
-
-		max_cap = max(max_cap, cpu_capacity(i));
-		min_cap = min(min_cap, cpu_capacity(i));
-	}
-
-	max_capacity = max_cap;
-	min_capacity = min_cap;
 }
 
 /*
@@ -2955,38 +2922,6 @@ static inline u64 scale_load_to_cpu(u64 task_load, int cpu)
 	}
 
 	return task_load;
-}
-
-/*
- * Return 'capacity' of a cpu in reference to "least" efficient cpu, such that
- * least efficient cpu gets capacity of 1024
- */
-static unsigned long
-capacity_scale_cpu_efficiency(struct sched_cluster *cluster)
-{
-	return (1024 * cluster->efficiency) / min_possible_efficiency;
-}
-
-/*
- * Return 'capacity' of a cpu in reference to cpu with lowest max_freq
- * (min_max_freq), such that one with lowest max_freq gets capacity of 1024.
- */
-static unsigned long capacity_scale_cpu_freq(struct sched_cluster *cluster)
-{
-	return (1024 * cluster_max_freq(cluster)) / min_max_freq;
-}
-
-static inline int compute_capacity(struct sched_cluster *cluster)
-{
-	int capacity = 1024;
-
-	capacity *= capacity_scale_cpu_efficiency(cluster);
-	capacity >>= 10;
-
-	capacity *= capacity_scale_cpu_freq(cluster);
-	capacity >>= 10;
-
-	return capacity;
 }
 
 static inline unsigned int task_load(struct task_struct *p)
@@ -3208,11 +3143,6 @@ static inline u64 scale_load_to_cpu(u64 load, int cpu)
 	return load;
 }
 
-static inline int cpu_capacity(int cpu)
-{
-	return capacity_orig_of(cpu);
-}
-
 static inline void set_preferred_cluster(struct related_thread_group *grp) { }
 
 static inline bool task_in_related_thread_group(struct task_struct *p)
@@ -3302,7 +3232,6 @@ static inline unsigned int power_cost(int cpu, bool max)
 }
 
 static inline void walt_sched_energy_populated_callback(void) { }
-static inline void walt_update_min_max_capacity(void) { }
 
 static inline void walt_map_freq_to_load(void) { }
 #endif	/* CONFIG_SCHED_WALT */
