@@ -97,7 +97,7 @@ rbstatic const struct rb_augment_callbacks rbname = {			\
 };
 
 /*
- * Template for declaring augmented rbtree callbacks,
+ * Template for declaring augmented rbtree callbacks (generic case)
  * computing RBAUGMENTED scalar as max(RBCOMPUTE(node)) for all subtree nodes.
  *
  * RBSTATIC:    'static' or empty
