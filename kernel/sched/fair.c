@@ -2995,7 +2995,7 @@ static inline void update_cfs_group(struct sched_entity *se)
 }
 #endif /* CONFIG_FAIR_GROUP_SCHED */
 
-#ifdef CONFIG_SMP
+#ifdef CONFIG_SCHED_WALT
 u32 sched_get_wake_up_idle(struct task_struct *p)
 {
 	u32 enabled = p->flags & PF_WAKE_UP_IDLE;
@@ -3016,7 +3016,9 @@ int sched_set_wake_up_idle(struct task_struct *p, int wake_up_idle)
 	return 0;
 }
 EXPORT_SYMBOL(sched_set_wake_up_idle);
+#endif
 
+#ifdef CONFIG_SMP
 #ifdef CONFIG_FAIR_GROUP_SCHED
 /**
  * update_tg_load_avg - update the tg's load avg
