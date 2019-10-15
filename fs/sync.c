@@ -23,7 +23,7 @@
 #endif
 
 bool fsync_enabled = true;
-module_param(fsync_enabled, bool, 0755);
+module_param(fsync_enabled, bool, 0644);
 
 #define VALID_FLAGS (SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE| \
 			SYNC_FILE_RANGE_WAIT_AFTER)
@@ -214,7 +214,7 @@ SYSCALL_DEFINE1(syncfs, int, fd)
  */
 int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 {
-	struct inode *inode = file->f_mapping->host;
+	struct inode *inode;
 
 #ifdef CONFIG_DYNAMIC_FSYNC
 	if (likely(dyn_fsync_active && suspend_active))
@@ -224,14 +224,17 @@ int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 	if (!fsync_enabled)
 		return 0;
 
+	inode = file->f_mapping->host;
 	if (!file->f_op->fsync)
 		return -EINVAL;
+
 	if (!datasync && (inode->i_state & I_DIRTY_TIME)) {
 		spin_lock(&inode->i_lock);
 		inode->i_state &= ~I_DIRTY_TIME;
 		spin_unlock(&inode->i_lock);
 		mark_inode_dirty_sync(inode);
 	}
+
 	return file->f_op->fsync(file, start, end, datasync);
 }
 EXPORT_SYMBOL(vfs_fsync_range);
