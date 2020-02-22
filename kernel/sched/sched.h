@@ -1145,6 +1145,24 @@ static inline u64 rq_clock_task(struct rq *rq)
 #define RQCF_REQ_SKIP	0x01
 #define RQCF_ACT_SKIP	0x02
 
+/**
+ * By default the decay is the default pelt decay period.
+ * The decay shift can change the decay period in
+ * multiples of 32.
+ *  Decay shift		Decay period(ms)
+ *	0			32
+ *	1			64
+ *	2			128
+ *	3			256
+ *	4			512
+ */
+extern int sched_thermal_decay_shift;
+
+static inline u64 rq_clock_thermal(struct rq *rq)
+{
+	return rq_clock_task(rq) >> sched_thermal_decay_shift;
+}
+
 static inline void rq_clock_skip_update(struct rq *rq, bool skip)
 {
 	lockdep_assert_held(&rq->lock);
