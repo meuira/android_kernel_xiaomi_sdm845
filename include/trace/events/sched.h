@@ -1971,6 +1971,10 @@ TRACE_EVENT(sched_preempt_disable,
 				__entry->caddr2, __entry->caddr3)
 );
 
+DECLARE_TRACE(pelt_thermal_tp,
+	TP_PROTO(struct rq *rq),
+	TP_ARGS(rq));
+
 #endif /* _TRACE_SCHED_H */
 
 /* This part must be outside protection */
