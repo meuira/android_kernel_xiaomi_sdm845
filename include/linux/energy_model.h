@@ -37,7 +37,7 @@ struct em_perf_domain {
 	struct em_cap_state *table;
 	int nr_cap_states;
 	struct kobject kobj;
-	unsigned long cpus[0];
+	unsigned long cpus[];
 };
 
 #ifdef CONFIG_ENERGY_MODEL
