@@ -296,6 +296,7 @@ struct sde_kms {
 	cpumask_t irq_cpu_mask;
 	struct pm_qos_request pm_qos_irq_req;
 	struct irq_affinity_notify affinity_notify;
+	bool pm_qos_irq_req_en;
 };
 
 struct vsync_info {
@@ -708,4 +709,6 @@ int sde_kms_handle_recovery(struct drm_encoder *encoder);
 void sde_kms_trigger_early_wakeup(struct sde_kms *sde_kms,
 		struct drm_crtc *crtc);
 
+void sde_kms_update_pm_qos_irq_request(struct sde_kms *sde_kms,
+		bool enable, bool skip_lock);
 #endif /* __sde_kms_H__ */
