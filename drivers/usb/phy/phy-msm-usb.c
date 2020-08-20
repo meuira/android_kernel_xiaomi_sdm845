@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2020, Linux Foundation. All rights reserved.
+ /* Copyright (c) 2009-2020, Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -116,7 +116,8 @@ enum msm_usb_phy_type {
 	QUSB_ULPI_PHY,
 };
 
-#define IDEV_CHG_MAX	1500
+#define IDEV_CHG_MAX	2500
+static int idev_chg_max = IDEV_CHG_MAX;
 #define IUNIT		100
 #define IDEV_HVDCP_CHG_MAX	1800
 
