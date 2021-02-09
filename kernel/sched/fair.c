@@ -138,7 +138,7 @@ unsigned int sysctl_sched_use_walt_task_util = 1;
 enum sched_tunable_scaling sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_NONE;
 #else // CONFIG_SCHED_BORE
 enum sched_tunable_scaling sysctl_sched_tunable_scaling
-	= SCHED_TUNABLESCALING_LOG;
+	= SCHED_TUNABLESCALING_LINEAR;
 #endif // CONFIG_SCHED_BORE
 
 /*
