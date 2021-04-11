@@ -90,6 +90,15 @@ unsigned int sysctl_sched_sync_hint_enable = 1;
 unsigned int sysctl_sched_cstate_aware = 1;
 DEFINE_PER_CPU_READ_MOSTLY(int, sched_load_boost);
 
+
+/*
+ * The margin used when comparing CPU capacities.
+ * is 'cap1' noticeably greater than 'cap2'
+ *
+ * (default: ~5%)
+ */
+#define capacity_greater(cap1, cap2) ((cap1) * 1024 > (cap2) * 1078)
+
 #ifdef CONFIG_SCHED_WALT
 unsigned int sysctl_sched_use_walt_cpu_util = 1;
 unsigned int sysctl_sched_use_walt_task_util = 1;
@@ -9409,7 +9418,7 @@ static bool update_sd_pick_busiest(struct lb_env *env,
 	 * per-cpu capacity. No reason to pull tasks to less capable cpus.
 	 */
 	if (sgs->sum_nr_running <= sgs->group_weight &&
-	    group_smaller_cpu_capacity(sds->local, sg))
+	    capacity_greater(sg->sgc->min_capacity, capacity_of(env->dst_cpu)))
 		return false;
 
 asym_packing:
@@ -9530,7 +9539,7 @@ static inline void update_sd_lb_stats(struct lb_env *env, struct sd_lb_stats *sd
 		 * capacity or if per-cpu capacity isn't higher.
 		 */
 		if (sgs->group_type == group_misfit_task && sds->local &&
-		    (!group_has_capacity(env, &sds->local_stat) ||
+		     (!capacity_greater(capacity_of(env->dst_cpu), sg->sgc->max_capacity) ||
 		     !group_smaller_cpu_capacity(sg, sds->local)))
 			sgs->group_type = group_other;
 
@@ -9983,7 +9992,7 @@ static struct rq *find_busiest_queue(struct lb_env *env,
 		 * average load.
 		 */
 		if (env->sd->flags & SD_ASYM_CPUCAPACITY &&
-		    capacity_of(env->dst_cpu) < capacity &&
+                    !capacity_greater(capacity_of(env->dst_cpu), capacity) &&
 		    (rq->nr_running == 1 || (rq->nr_running == 2 &&
 		     task_util(rq->curr) < sched_small_task_threshold)))
 			continue;
