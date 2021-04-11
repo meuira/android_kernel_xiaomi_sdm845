@@ -7662,11 +7662,13 @@ retry:
 				continue;
 			}
 
+#ifdef CONFIG_SCHED_WALT
 			/*
 			 * Consider only idle CPUs for active migration.
 			 */
 			if (p->state == TASK_RUNNING)
 				continue;
+#endif
 
 			/*
 			 * Case C) Non latency sensitive tasks on ACTIVE CPUs.
@@ -7786,10 +7788,12 @@ retry:
 		? best_active_cpu
 		: best_idle_cpu;
 
+#ifdef CONFIG_SCHED_WALT
 	if (target_cpu == -1 && most_spare_cap_cpu != -1 &&
 		/* ensure we use active cpu for active migration */
 		!(p->state == TASK_RUNNING && !idle_cpu(most_spare_cap_cpu)))
 		target_cpu = most_spare_cap_cpu;
+#endif
 
 	if (cpu_isolated(prev_cpu)) {
 		fbt_env->avoid_prev_cpu = true;
