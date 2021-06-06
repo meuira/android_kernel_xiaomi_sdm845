@@ -1076,6 +1076,7 @@ static bool should_skip(const struct cpumask *mask)
 	return cpumask_subset(mask, core_ctl_disable_cpumask);
 }
 
+#if 0
 static struct cluster_data *find_cluster_by_first_cpu(unsigned int first_cpu)
 {
 	unsigned int i;
@@ -1198,3 +1199,4 @@ static int __init core_ctl_init(void)
 }
 
 late_initcall(core_ctl_init);
+#endif
