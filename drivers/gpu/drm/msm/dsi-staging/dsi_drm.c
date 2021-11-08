@@ -248,17 +248,13 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 		return;
 	}
 
-	SDE_ATRACE_BEGIN("dsi_bridge_pre_enable");
-
 	rc = dsi_display_prepare(c_bridge->display);
 	if (rc) {
 		pr_err("[%d] DSI display prepare failed, rc=%d\n",
 		       c_bridge->id, rc);
-		SDE_ATRACE_END("dsi_bridge_pre_enable");
 		return;
 	}
 
-	SDE_ATRACE_BEGIN("dsi_display_enable");
 	rc = dsi_display_enable(c_bridge->display);
 	if (rc) {
 		pr_err("[%d] DSI display enable failed, rc=%d\n",
@@ -267,9 +263,6 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 	}
 
 	drm_notifier_call_chain(DRM_EVENT_BLANK, &g_notify_data);
-
-	SDE_ATRACE_END("dsi_display_enable");
-	SDE_ATRACE_END("dsi_bridge_pre_enable");
 
 	rc = dsi_display_splash_res_cleanup(c_bridge->display);
 	if (rc)
@@ -493,25 +486,19 @@ static void dsi_bridge_post_disable(struct drm_bridge *bridge)
 
 	drm_notifier_call_chain(DRM_EARLY_EVENT_BLANK, &g_notify_data);
 
-	SDE_ATRACE_BEGIN("dsi_bridge_post_disable");
-	SDE_ATRACE_BEGIN("dsi_display_disable");
 	rc = dsi_display_disable(c_bridge->display);
 	if (rc) {
 		pr_err("[%d] DSI display disable failed, rc=%d\n",
 		       c_bridge->id, rc);
-		SDE_ATRACE_END("dsi_display_disable");
 		return;
 	}
-	SDE_ATRACE_END("dsi_display_disable");
 
 	rc = dsi_display_unprepare(c_bridge->display);
 	if (rc) {
 		pr_err("[%d] DSI display unprepare failed, rc=%d\n",
 		       c_bridge->id, rc);
-		SDE_ATRACE_END("dsi_bridge_post_disable");
 		return;
 	}
-	SDE_ATRACE_END("dsi_bridge_post_disable");
 
 	drm_notifier_call_chain(DRM_EVENT_BLANK, &g_notify_data);
 
