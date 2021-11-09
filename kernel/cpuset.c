@@ -1878,7 +1878,7 @@ static ssize_t cpuset_write_resmask_wrapper(struct kernfs_open_file *of,
 	};
 #ifdef CONFIG_UCLAMP_ASSIST
 	static struct uc_target uc_targets[] = {
-		{ "top-app",		"30", "max",	1, 1 },
+		{ "top-app",		"0", "max",	1, 1 },
 		{ "foreground",		"0", "50",	1, 1 },
 		{ "restricted",		"0", "40",	0, 0 },
 		{ "background",		"0", "max",	0, 0 },
