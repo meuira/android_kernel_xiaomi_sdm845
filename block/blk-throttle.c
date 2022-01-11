@@ -13,13 +13,13 @@
 #include "blk.h"
 
 /* Max dispatch from a group in 1 round */
-static int throtl_grp_quantum = 8;
+static int throtl_grp_quantum = 16;
 
 /* Total max dispatch from all groups in one round */
-static int throtl_quantum = 32;
+static int throtl_quantum = 64;
 
 /* Throttling is performed over 100ms slice and after that slice is renewed */
-static unsigned long throtl_slice = HZ/10;	/* 100 ms */
+static unsigned long throtl_slice = HZ/100;	/* 100 ms */
 
 static struct blkcg_policy blkcg_policy_throtl;
 
