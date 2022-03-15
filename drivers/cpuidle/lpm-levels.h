@@ -86,7 +86,6 @@ struct lpm_cluster {
 	struct lpm_stats *stats;
 	unsigned int psci_mode_shift;
 	unsigned int psci_mode_mask;
-	struct hrtimer histtimer;
 };
 
 struct lpm_cluster *lpm_of_parse_cluster(struct platform_device *pdev);
