@@ -42,10 +42,6 @@ unsigned long cass_cpu_util(int cpu, bool sync)
 	if (sync && cpu == smp_processor_id())
 		sub_positive(&util, task_util(current));
 
-	if (sched_feat(UTIL_EST))
-		util = max_t(unsigned long, util,
-			     READ_ONCE(cfs_rq->avg.util_est.enqueued));
-
 	return util;
 }
 
@@ -101,7 +97,9 @@ static int cass_best_cpu(struct task_struct *p, int prev_cpu, bool sync)
 	int cidx = 0, cpu;
 
 	/* Get the utilization for this task */
-	p_util = task_util_est(p);
+	p_util = clamp(task_util(p),
+		       uclamp_eff_value(p, UCLAMP_MIN),
+		       uclamp_eff_value(p, UCLAMP_MAX));
 
 	/*
 	 * Find the best CPU to wake @p on. The RCU read lock is needed for
@@ -177,8 +175,7 @@ static int cass_best_cpu(struct task_struct *p, int prev_cpu, bool sync)
 }
 
 static int cass_select_task_rq_fair(struct task_struct *p, int prev_cpu,
-				    int sd_flag, int wake_flags,
-				    int sibling_count_hint)
+				    int sd_flag, int wake_flags)
 {
 	bool sync;
 
