@@ -346,10 +346,10 @@ static int lookup_all_xattrs(struct inode *inode, struct page *ipage,
 
 	*xe = __find_xattr(cur_addr, last_txattr_addr, index, len, name);
 	if (!*xe) {
-		f2fs_err(F2FS_I_SB(inode), "inode (%lu) has corrupted xattr",
+		f2fs_err(F2FS_I_SB(inode), "lookup inode (%lu) has corrupted xattr",
 								inode->i_ino);
 		set_sbi_flag(F2FS_I_SB(inode), SBI_NEED_FSCK);
-		err = -EFSCORRUPTED;
+		err = -ENODATA;
 		goto out;
 	}
 check:
@@ -615,7 +615,7 @@ static int __f2fs_setxattr(struct inode *inode, int index,
 
 	if (size > MAX_VALUE_LEN(inode))
 		return -E2BIG;
-
+retry:
 	error = read_all_xattrs(inode, ipage, &base_addr);
 	if (error)
 		return error;
@@ -625,7 +625,14 @@ static int __f2fs_setxattr(struct inode *inode, int index,
 	/* find entry with wanted name. */
 	here = __find_xattr(base_addr, last_base_addr, index, len, name);
 	if (!here) {
-		f2fs_err(F2FS_I_SB(inode), "inode (%lu) has corrupted xattr",
+		if (!F2FS_I(inode)->i_xattr_nid) {
+			f2fs_notice(F2FS_I_SB(inode),
+				"recover xattr in inode (%lu)", inode->i_ino);
+			f2fs_recover_xattr_data(inode, NULL);
+			kfree(base_addr);
+			goto retry;
+		}
+		f2fs_err(F2FS_I_SB(inode), "set inode (%lu) has corrupted xattr",
 								inode->i_ino);
 		set_sbi_flag(F2FS_I_SB(inode), SBI_NEED_FSCK);
 		error = -EFSCORRUPTED;
