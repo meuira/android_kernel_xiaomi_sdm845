@@ -2781,21 +2781,6 @@ static inline bool uclamp_boosted(struct task_struct *p)
 #else /* arch_scale_freq_capacity */
 #define arch_scale_freq_invariant()	(false)
 #endif
-/*
-**
- * enum schedutil_type - CPU utilization type
- * @FREQUENCY_UTIL:     Utilization used to select frequency
- * @ENERGY_UTIL:        Utilization used during energy calculation
- *
- * The utilization signals of all scheduling classes (CFS/RT/DL) and IRQ time
- * need to be aggregated differently depending on the usage made of them. This
- * enum is used within schedutil_freq_util() to differentiate the types of
- * utilization expected by the callers, and adjust the aggregation accordingly.
- */
-enum schedutil_type {
-        FREQUENCY_UTIL,
-        ENERGY_UTIL,
-};
 #ifdef CONFIG_SMP
 static inline unsigned long cpu_util_cfs(struct rq *rq)
 {
@@ -3401,8 +3386,13 @@ static inline unsigned long cpu_util_freq(int cpu)
 
 #ifdef CONFIG_CPU_FREQ_GOV_SCHEDUTIL
 unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
-				 enum schedutil_type type,
-				 struct task_struct *p);
+				 unsigned long *min,
+				 unsigned long *max);
+
+unsigned long sugov_effective_cpu_perf(int cpu, unsigned long actual,
+				 unsigned long min,
+				 unsigned long max);
+
 #else /* CONFIG_CPU_FREQ_GOV_SCHEDUTIL */
 static inline unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
 				 enum schedutil_type type,
