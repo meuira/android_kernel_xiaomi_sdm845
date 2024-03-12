@@ -90,7 +90,6 @@ unsigned int sysctl_sched_sync_hint_enable = 1;
 unsigned int sysctl_sched_cstate_aware = 1;
 DEFINE_PER_CPU_READ_MOSTLY(int, sched_load_boost);
 
-
 /*
  * The margin used when comparing CPU capacities.
  * is 'cap1' noticeably greater than 'cap2'
@@ -148,11 +147,11 @@ const_debug unsigned int sysctl_sched_migration_cost = 500000UL;
 
 #ifdef CONFIG_SMP
 /*
- * For asym packing, by default the lower numbered cpu has higher priority.
+ * For asym packing, by default the lower max-capacity CPU has higher priority.
  */
 int __weak arch_asym_cpu_priority(int cpu)
 {
-	return -cpu;
+	return -arch_scale_cpu_capacity(NULL, cpu);
 }
 #endif
 
