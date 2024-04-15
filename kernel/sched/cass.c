@@ -29,6 +29,7 @@ struct cass_cpu_cand {
 	int cpu;
 	unsigned int exit_lat;
 	unsigned long cap;
+	unsigned long cap_max;
 	unsigned long util;
 };
 
@@ -57,6 +58,10 @@ bool cass_cpu_better(const struct cass_cpu_cand *a,
 
 	/* Prefer the CPU with lower relative utilization */
 	if (cass_cmp(b->util, a->util))
+		goto done;
+
+	/* Prefer the CPU that is idle (only relevant for uclamped tasks) */
+	if (cass_cmp(!!a->exit_lat, !!b->exit_lat))
 		goto done;
 
 	/* Prefer the current CPU for sync wakes */
@@ -91,14 +96,13 @@ static int cass_best_cpu(struct task_struct *p, int prev_cpu, bool sync)
 {
 	/* Initialize @best such that @best always has a valid CPU at the end */
 	struct cass_cpu_cand cands[2], *best = cands;
+	unsigned long p_util, uc_min;
 	bool has_idle = false;
-	unsigned long p_util;
 	int cidx = 0, cpu;
 
 	/* Get the utilization for this task */
-	p_util = clamp(task_util(p),
-		       uclamp_eff_value(p, UCLAMP_MIN),
-		       uclamp_eff_value(p, UCLAMP_MAX));
+	p_util = task_util(p);
+	uc_min = uclamp_eff_value(p, UCLAMP_MIN);
 
 	/*
 	 * Find the best CPU to wake @p on. The RCU read lock is needed for
@@ -110,22 +114,36 @@ static int cass_best_cpu(struct task_struct *p, int prev_cpu, bool sync)
 		/* Use the free candidate slot for @curr */
 		struct cass_cpu_cand *curr = &cands[cidx];
 		struct cpuidle_state *idle_state;
+		struct rq *rq = cpu_rq(cpu);
+
+		/* Get the capacity of this CPU */
+		curr->cap_max = arch_scale_cpu_capacity(NULL, cpu);
+
+		/* Prefer the CPU that meets the uclamp minimum requirement */
+		if (curr->cap_max < uc_min && best->cap_max >= uc_min)
+			continue;
 
 		/*
 		 * Check if this CPU is idle. For sync wakes, always treat the
 		 * current CPU as idle.
 		 */
 		if ((sync && cpu == smp_processor_id()) || idle_cpu(cpu)) {
-			/* Discard any previous non-idle candidate */
-			if (!has_idle)
-				best = curr;
-			has_idle = true;
+			/*
+			 * A non-idle candidate may be better when @p is uclamp
+			 * boosted. Otherwise, always prefer idle candidates.
+			 */
+			if (!uc_min) {
+				/* Discard any previous non-idle candidate */
+				if (!has_idle)
+					best = curr;
+				has_idle = true;
+			}
 
 			/* Nonzero exit latency indicates this CPU is idle */
 			curr->exit_lat = 1;
 
 			/* Add on the actual idle exit latency, if any */
-			idle_state = idle_get_state(cpu_rq(cpu));
+			idle_state = idle_get_state(rq);
 			if (idle_state)
 				curr->exit_lat += idle_state->exit_latency;
 		} else {
@@ -147,6 +165,10 @@ static int cass_best_cpu(struct task_struct *p, int prev_cpu, bool sync)
 		 */
 		if (cpu != task_cpu(p))
 			curr->util += p_util;
+
+		/* Clamp the utilization to the minimum performance threshold */
+		if (curr->util < uc_min)
+			curr->util = uc_min;
 
 		/*
 		 * Get the current capacity of this CPU adjusted for thermal
