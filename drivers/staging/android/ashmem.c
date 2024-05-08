@@ -100,39 +100,52 @@ static DEFINE_MUTEX(ashmem_mutex);
 static struct kmem_cache *ashmem_area_cachep __read_mostly;
 static struct kmem_cache *ashmem_range_cachep __read_mostly;
 
-#define range_size(range) \
-	((range)->pgend - (range)->pgstart + 1)
+/*
+ * A separate lockdep class for the backing shmem inodes to resolve the lockdep
+ * warning about the race between kswapd taking fs_reclaim before inode_lock
+ * and write syscall taking inode_lock and then fs_reclaim.
+ * Note that such race is impossible because ashmem does not support write
+ * syscalls operating on the backing shmem.
+ */
+static struct lock_class_key backing_shmem_inode_class;
 
-#define range_on_lru(range) \
-	((range)->purged == ASHMEM_NOT_PURGED)
-
-static inline int page_range_subsumes_range(struct ashmem_range *range,
-					    size_t start, size_t end)
+static inline unsigned long range_size(struct ashmem_range *range)
 {
-	return (((range)->pgstart >= (start)) && ((range)->pgend <= (end)));
+	return range->pgend - range->pgstart + 1;
 }
 
-static inline int page_range_subsumed_by_range(struct ashmem_range *range,
-					       size_t start, size_t end)
+static inline bool range_on_lru(struct ashmem_range *range)
 {
-	return (((range)->pgstart <= (start)) && ((range)->pgend >= (end)));
+	return range->purged == ASHMEM_NOT_PURGED;
 }
 
-static inline int page_in_range(struct ashmem_range *range, size_t page)
+static inline bool page_range_subsumes_range(struct ashmem_range *range,
+					     size_t start, size_t end)
 {
-	return (((range)->pgstart <= (page)) && ((range)->pgend >= (page)));
+	return (range->pgstart >= start) && (range->pgend <= end);
 }
 
-static inline int page_range_in_range(struct ashmem_range *range,
-				      size_t start, size_t end)
+static inline bool page_range_subsumed_by_range(struct ashmem_range *range,
+						size_t start, size_t end)
 {
-	return (page_in_range(range, start) || page_in_range(range, end) ||
-		page_range_subsumes_range(range, start, end));
+	return (range->pgstart <= start) && (range->pgend >= end);
 }
 
-static inline int range_before_page(struct ashmem_range *range, size_t page)
+static inline bool page_in_range(struct ashmem_range *range, size_t page)
 {
-	return ((range)->pgend < (page));
+	return (range->pgstart <= page) && (range->pgend >= page);
+}
+
+static inline bool page_range_in_range(struct ashmem_range *range,
+				       size_t start, size_t end)
+{
+	return page_in_range(range, start) || page_in_range(range, end) ||
+		page_range_subsumes_range(range, start, end);
+}
+
+static inline bool range_before_page(struct ashmem_range *range, size_t page)
+{
+	return range->pgend < page;
 }
 
 #define PROT_MASK		(PROT_EXEC | PROT_READ | PROT_WRITE)
@@ -290,19 +303,9 @@ static int ashmem_release(struct inode *ignored, struct file *file)
 	return 0;
 }
 
-/**
- * ashmem_read() - Reads a set of bytes from an Ashmem-enabled file
- * @file:	   The associated backing file.
- * @buf:	   The buffer of data being written to
- * @len:	   The number of bytes being read
- * @pos:	   The position of the first byte to read.
- *
- * Return: 0 if successful, or another return code if not.
- */
-static ssize_t ashmem_read(struct file *file, char __user *buf,
-			   size_t len, loff_t *pos)
+static ssize_t ashmem_read_iter(struct kiocb *iocb, struct iov_iter *iter)
 {
-	struct ashmem_area *asma = file->private_data;
+	struct ashmem_area *asma = iocb->ki_filp->private_data;
 	int ret = 0;
 
 	mutex_lock(&ashmem_mutex);
@@ -316,20 +319,17 @@ static ssize_t ashmem_read(struct file *file, char __user *buf,
 		goto out_unlock;
 	}
 
-	mutex_unlock(&ashmem_mutex);
-
 	/*
 	 * asma and asma->file are used outside the lock here.  We assume
 	 * once asma->file is set it will never be changed, and will not
 	 * be destroyed until all references to the file are dropped and
 	 * ashmem_release is called.
 	 */
-	ret = __vfs_read(asma->file, buf, len, pos);
-	if (ret >= 0)
-		/** Update backing file pos, since f_ops->read() doesn't */
-		asma->file->f_pos = *pos;
-	return ret;
-
+	mutex_unlock(&ashmem_mutex);
+	ret = vfs_iter_read(asma->file, iter, &iocb->ki_pos, 0);
+	mutex_lock(&ashmem_mutex);
+	if (ret > 0)
+		asma->file->f_pos = iocb->ki_pos;
 out_unlock:
 	mutex_unlock(&ashmem_mutex);
 	return ret;
@@ -415,6 +415,7 @@ static int ashmem_mmap(struct file *file, struct vm_area_struct *vma)
 	if (!asma->file) {
 		char *name = ASHMEM_NAME_DEF;
 		struct file *vmfile;
+		struct inode *inode;
 
 		if (asma->name[ASHMEM_NAME_PREFIX_LEN] != '\0')
 			name = asma->name;
@@ -426,6 +427,8 @@ static int ashmem_mmap(struct file *file, struct vm_area_struct *vma)
 			goto out;
 		}
 		vmfile->f_mode |= FMODE_LSEEK;
+		inode = file_inode(vmfile);
+		lockdep_set_class(&inode->i_rwsem, &backing_shmem_inode_class);
 		asma->file = vmfile;
 		/*
 		 * override mmap operation of the vmfile so that it can't be
@@ -858,7 +861,7 @@ static const struct file_operations ashmem_fops = {
 	.owner = THIS_MODULE,
 	.open = ashmem_open,
 	.release = ashmem_release,
-	.read = ashmem_read,
+	.read_iter = ashmem_read_iter,
 	.llseek = ashmem_llseek,
 	.mmap = ashmem_mmap,
 	.unlocked_ioctl = ashmem_ioctl,
