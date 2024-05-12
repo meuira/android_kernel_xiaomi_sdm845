@@ -158,7 +158,8 @@ static int cass_best_cpu(struct task_struct *p, int prev_cpu, bool sync, bool rt
 		 * sync wakes, treat the current CPU as idle if @current is the
 		 * only running task.
 		 */
-		if ((sync && cpu == this_cpu && rq->nr_running == 1) || idle_cpu(cpu)) {
+		if ((sync && cpu == this_cpu && rq->nr_running == 1) ||
+		    idle_cpu(cpu) || sched_idle_cpu(cpu)) {
 			/*
 			 * A non-idle candidate may be better when @p is uclamp
 			 * boosted. Otherwise, always prefer idle candidates.
