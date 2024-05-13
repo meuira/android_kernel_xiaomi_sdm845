@@ -42,6 +42,14 @@ void cass_cpu_util(struct cass_cpu_cand *c, int this_cpu, bool sync)
 
 	/* Get this CPU's utilization from CFS tasks */
 	c->util = READ_ONCE(cfs_rq->avg.util_avg);
+	if (sched_feat(UTIL_EST)) {
+		est = READ_ONCE(cfs_rq->avg.util_est.enqueued);
+		if (est > c->util) {
+			/* Don't deduct @current's util from estimated util */
+			sync = false;
+			c->util = est;
+		}
+	}
 
 	/*
 	 * Account for lost capacity due to time spent in RT tasks and IRQs.
@@ -49,7 +57,8 @@ void cass_cpu_util(struct cass_cpu_cand *c, int this_cpu, bool sync)
 	 * order to produce consistently balanced task placement results between
 	 * CFS and RT tasks when CASS selects a CPU for them.
 	 */
-	c->cap = c->cap_max - min(cpu_util_rt(rq), c->cap_max - 1);
+	c->cap = c->cap_max - min(cpu_util_rt(rq) + cpu_util_dl(rq) +
+				  cpu_util_irq(rq), c->cap_max - 1);
 
 	/*
 	 * Deduct @current's util from this CPU if this is a sync wake, unless
@@ -117,7 +126,7 @@ static int cass_best_cpu(struct task_struct *p, int prev_cpu, bool sync, bool rt
 	 * Get the utilization and uclamp minimum threshold for this task. Note
 	 * that RT tasks don't have per-entity load tracking.
 	 */
-	p_util = rt ? 0 : task_util(p);
+	p_util = rt ? 0 : task_util_est(p);
 	uc_min = uclamp_eff_value(p, UCLAMP_MIN);
 
 	/*
