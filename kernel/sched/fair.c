@@ -1,4 +1,4 @@
-/*
+	/*
  * Completely Fair Scheduling (CFS) Class (SCHED_NORMAL/SCHED_BATCH)
  *
  *  Copyright (C) 2007 Red Hat, Inc., Ingo Molnar <mingo@redhat.com>
@@ -6595,18 +6595,18 @@ static int wake_affine(struct sched_domain *sd, struct task_struct *p,
 
 static inline unsigned long boosted_task_util(struct task_struct *p);
 
-static inline bool __task_fits(struct task_struct *p, int cpu, int util)
+static inline bool task_fits_capacity(struct task_struct *p,
+					long capacity,
+					int cpu)
 {
 	unsigned int margin;
-
-	util += boosted_task_util(p);
 
 	if (capacity_orig_of(task_cpu(p)) > capacity_orig_of(cpu))
 		margin = sysctl_sched_capacity_margin_down;
 	else
 		margin = sysctl_sched_capacity_margin;
 
-	return (capacity_orig_of(cpu) * 1024) > (util * margin);
+	return capacity * 1024 > boosted_task_util(p) * margin;
 }
 
 static inline bool task_fits_max(struct task_struct *p, int cpu)
@@ -6622,7 +6622,7 @@ static inline bool task_fits_max(struct task_struct *p, int cpu)
 			is_min_capacity_cpu(cpu))
 		return false;
 
-	return __task_fits(p, cpu, 0);
+	return task_fits_capacity(p, capacity, cpu);
 }
 
 static inline bool cpu_check_overutil_condition(int cpu,
