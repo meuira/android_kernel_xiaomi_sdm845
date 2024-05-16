@@ -11269,39 +11269,9 @@ static inline int on_null_domain(struct rq *rq)
  *   load balancing for all the idle CPUs.
  */
 
-static inline int find_new_ilb(int type)
+static inline int find_new_ilb(void)
 {
-	int ilb = nr_cpu_ids;
-	struct sched_domain *sd;
-	int cpu = raw_smp_processor_id();
-	struct rq *rq = cpu_rq(cpu);
-	cpumask_t cpumask;
-
-	rcu_read_lock();
-	sd = rcu_dereference_check_sched_domain(rq->sd);
-	if (sd) {
-		if (energy_aware() && rq->misfit_task)
-			cpumask_andnot(&cpumask, nohz.idle_cpus_mask,
-				sched_domain_span(sd));
-		else
-			cpumask_and(&cpumask, nohz.idle_cpus_mask,
-				    sched_domain_span(sd));
-		cpumask_andnot(&cpumask, &cpumask,
-			    cpu_isolated_mask);
-		ilb = cpumask_first(&cpumask);
-	}
-	rcu_read_unlock();
-
-	if (sd && (ilb >= nr_cpu_ids || !idle_cpu(ilb))) {
-		if (!energy_aware() ||
-		    (capacity_orig_of(cpu) ==
-		     cpu_rq(cpu)->rd->max_cpu_capacity.val ||
-		     (cpu_overutilized(cpu) && rq->nr_running > 1))) {
-			cpumask_andnot(&cpumask, nohz.idle_cpus_mask,
-			    cpu_isolated_mask);
-			ilb = cpumask_first(&cpumask);
-		}
-	}
+	int ilb = cpumask_first(nohz.idle_cpus_mask);
 
 	if (ilb < nr_cpu_ids && idle_cpu(ilb))
 		return ilb;
@@ -11320,7 +11290,7 @@ static void kick_ilb(unsigned int flags)
 
 	nohz.next_balance++;
 
-	ilb_cpu = find_new_ilb(type);
+	ilb_cpu = find_new_ilb();
 
 	if (ilb_cpu >= nr_cpu_ids)
 		return;
