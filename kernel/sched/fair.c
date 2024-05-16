@@ -11292,9 +11292,6 @@ static void nohz_balancer_kick(bool only_update)
 	if (test_and_set_bit(NOHZ_BALANCE_KICK, nohz_flags(ilb_cpu)))
 		return;
 
-	if (only_update)
-		set_bit(NOHZ_STATS_KICK, nohz_flags(ilb_cpu));
-
 	/*
 	 * Use smp_send_reschedule() instead of resched_cpu().
 	 * This way we generate a sched IPI on the target cpu which
@@ -11575,15 +11572,7 @@ static void nohz_idle_balance(struct rq *this_rq, enum cpu_idle_type idle)
 			cpu_load_update_idle(rq);
 			raw_spin_unlock_irq(&rq->lock);
 			update_blocked_averages(balance_cpu);
-			/*
-			 * This idle load balance softirq may have been
-			 * triggered only to update the blocked load and shares
-			 * of idle CPUs (which we have just done for
-			 * balance_cpu). In that case skip the actual balance.
-			 */
-			if (!test_bit(NOHZ_STATS_KICK, nohz_flags(this_cpu)))
-				rebalance_domains(rq, idle);
-		}
+			rebalance_domains(rq, idle);
 
 		if (time_after(next_balance, rq->next_balance)) {
 			next_balance = rq->next_balance;
@@ -11731,11 +11720,7 @@ static __latent_entropy void run_rebalance_domains(struct softirq_action *h)
 	 */
 	nohz_idle_balance(this_rq, idle);
 	update_blocked_averages(this_rq->cpu);
-	if (!test_bit(NOHZ_STATS_KICK, nohz_flags(this_rq->cpu)))
-		rebalance_domains(this_rq, idle);
-#ifdef CONFIG_NO_HZ_COMMON
-	clear_bit(NOHZ_STATS_KICK, nohz_flags(this_rq->cpu));
-#endif
+	rebalance_domains(this_rq, idle);
 }
 
 /*
