@@ -245,9 +245,13 @@ extern int blk_update_nr_requests(struct request_queue *, unsigned int);
  */
 static inline int blk_do_io_stat(struct request *rq)
 {
+#if 0
 	return rq->rq_disk &&
 	       (rq->cmd_flags & REQ_IO_STAT) &&
 		(rq->cmd_type == REQ_TYPE_FS);
+#else
+	return false;
+#endif
 }
 
 /*
