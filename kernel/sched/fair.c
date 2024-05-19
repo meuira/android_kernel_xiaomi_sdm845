@@ -9506,10 +9506,9 @@ static inline int get_sd_load_idx(struct sched_domain *sd,
 	return load_idx;
 }
 
-static unsigned long scale_rt_capacity(int cpu)
+static unsigned long scale_rt_capacity(int cpu, unsigned long max)
 {
 	struct rq *rq = cpu_rq(cpu);
-	unsigned long max = arch_scale_cpu_capacity(NULL, cpu);
 	unsigned long used, free;
 	unsigned long irq;
 
@@ -9545,76 +9544,45 @@ void init_max_cpu_capacity(struct max_cpu_capacity *mcc)
 
 static void update_cpu_capacity(struct sched_domain *sd, int cpu)
 {
-	unsigned long capacity = arch_scale_cpu_capacity(sd, cpu);
+	unsigned long capacity = arch_scale_cpu_capacity(NULL, cpu);
 	struct sched_group *sdg = sd->groups;
-	struct max_cpu_capacity *mcc;
-	unsigned long max_capacity;
-	int max_cap_cpu;
-	unsigned long flags;
-
-	cpu_rq(cpu)->cpu_capacity_orig = arch_scale_cpu_capacity(sd, cpu);
 
 	capacity *= arch_scale_max_freq_capacity(sd, cpu);
 	capacity >>= SCHED_CAPACITY_SHIFT;
 
-	mcc = &cpu_rq(cpu)->rd->max_cpu_capacity;
+	capacity = min(capacity, thermal_cap(cpu));
+	cpu_rq(cpu)->cpu_capacity_orig = capacity;
 
-	raw_spin_lock_irqsave(&mcc->lock, flags);
-	max_capacity = mcc->val;
-	max_cap_cpu = mcc->cpu;
-
-	if ((max_capacity > capacity && max_cap_cpu == cpu) ||
-	    (max_capacity < capacity)) {
-		mcc->val = capacity;
-		mcc->cpu = cpu;
-#ifdef CONFIG_SCHED_DEBUG
-		raw_spin_unlock_irqrestore(&mcc->lock, flags);
-		printk_deferred(KERN_INFO "CPU%d: update max cpu_capacity %lu\n",
-				cpu, capacity);
-		goto skip_unlock;
-#endif
-	}
-	raw_spin_unlock_irqrestore(&mcc->lock, flags);
-
-skip_unlock: __attribute__ ((unused));
+	capacity = scale_rt_capacity(cpu, capacity);
 
 	if (!capacity)
 		capacity = 1;
 
 	cpu_rq(cpu)->cpu_capacity = capacity;
-	if (!sd->child) {
-		sdg->sgc->capacity = capacity;
-		sdg->sgc->max_capacity = capacity;
-		sdg->sgc->min_capacity = capacity;
-	}
+	sdg->sgc->capacity = capacity;
+	sdg->sgc->min_capacity = capacity;
+	sdg->sgc->max_capacity = capacity;
 }
 
 void update_group_capacity(struct sched_domain *sd, int cpu)
 {
 	struct sched_domain *child = sd->child;
 	struct sched_group *group, *sdg = sd->groups;
-	unsigned long capacity, max_capacity, min_capacity;
+	unsigned long capacity, min_capacity, max_capacity;
 	unsigned long interval;
 
 	interval = msecs_to_jiffies(sd->balance_interval);
 	interval = clamp(interval, 1UL, max_load_balance_interval);
 	sdg->sgc->next_update = jiffies + interval;
 
-	/*
-	 * When there is only 1 CPU in the sched group of a higher
-	 * level sched domain (sd->child != NULL), the load balance
-	 * does not happen for the last level sched domain. Check
-	 * this condition and update the CPU capacity accordingly.
-	 */
-	if (cpumask_weight(sched_group_cpus(sdg)) == 1) {
+	if (!child) {
 		update_cpu_capacity(sd, cpu);
-		if (!child)
-			return;
+		return;
 	}
 
 	capacity = 0;
-	max_capacity = 0;
 	min_capacity = ULONG_MAX;
+	max_capacity = 0;
 
 	if (child->flags & SD_OVERLAP) {
 		/*
@@ -9622,7 +9590,7 @@ void update_group_capacity(struct sched_domain *sd, int cpu)
 		 * span the current group.
 		 */
 
-                for_each_cpu(cpu, sched_group_cpus(sdg)) {
+		for_each_cpu(cpu, sched_group_cpus(sdg)) {
 			unsigned long cpu_cap = capacity_of(cpu);
 
 			if (cpumask_test_cpu(cpu, cpu_isolated_mask))
@@ -9641,7 +9609,6 @@ void update_group_capacity(struct sched_domain *sd, int cpu)
 			struct sched_group_capacity *sgc = group->sgc;
 			cpumask_t *cpus = sched_group_cpus(group);
 
-			/* Revisit this later. This won't work for MT domain */
 			if (!cpu_isolated(cpumask_first(cpus))) {
 				capacity += sgc->capacity;
 				min_capacity = min(sgc->min_capacity,
@@ -9654,8 +9621,8 @@ void update_group_capacity(struct sched_domain *sd, int cpu)
 	}
 
 	sdg->sgc->capacity = capacity;
-	sdg->sgc->max_capacity = max_capacity;
 	sdg->sgc->min_capacity = min_capacity;
+	sdg->sgc->max_capacity = max_capacity;
 }
 
 /*
