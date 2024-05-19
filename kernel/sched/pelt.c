@@ -28,6 +28,8 @@
 #include "sched.h"
 #include "pelt.h"
 
+#include <trace/events/sched.h>
+
 /*
  * Approximate:
  *   val * y^n,    where y^32 ~= 0.5 (~1 scheduling period)
