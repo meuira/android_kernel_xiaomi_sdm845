@@ -110,6 +110,17 @@ static struct attribute_group topology_attr_group = {
 	.name = "topology"
 };
 
+DEFINE_PER_CPU(unsigned long, thermal_pressure);
+
+void arch_set_thermal_pressure(struct cpumask *cpus,
+			       unsigned long th_pressure)
+{
+	int cpu;
+
+	for_each_cpu(cpu, cpus)
+		WRITE_ONCE(per_cpu(thermal_pressure, cpu), th_pressure);
+}
+
 /* Add/Remove cpu_topology interface for CPU device */
 static int topology_add_dev(unsigned int cpu)
 {
