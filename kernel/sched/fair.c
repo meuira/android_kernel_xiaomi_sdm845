@@ -10206,6 +10206,7 @@ static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *s
 {
 	unsigned long max_pull, load_above_capacity = ~0UL;
 	struct sg_lb_stats *local, *busiest;
+	bool no_imbalance = false;
 
 	local = &sds->local_stat;
 	busiest = &sds->busiest_stat;
@@ -10213,7 +10214,7 @@ static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *s
 	if (busiest->group_type == group_imbalanced) {
 		/*
 		 * In the group_imb case we cannot rely on group-wide averages
-		 * to ensure cpu-load equilibrium, look at wider averages. XXX
+		 * to ensure CPU-load equilibrium, look at wider averages. XXX
 		 */
 		busiest->load_per_task =
 			min(busiest->load_per_task, sds->avg_load);
@@ -10226,23 +10227,10 @@ static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *s
 	 * skipped when updating the busiest sg:
 	 */
 	if (busiest->avg_load <= sds->avg_load ||
-	    local->avg_load >= sds->avg_load) {
-		/* Misfitting tasks should be migrated in any case */
-		if (busiest->group_type == group_misfit_task) {
-			env->imbalance = busiest->group_misfit_task;
-			return;
-		}
+	    local->avg_load >= sds->avg_load)
+		no_imbalance = true;
 
-		/*
-		 * Busiest group is overloaded, local is not, use the spare
-		 * cycles to maximize throughput
-		 */
-		if (busiest->group_type == group_overloaded &&
-		    local->group_type <= group_misfit_task) {
-			env->imbalance = busiest->load_per_task;
-			return;
-		}
-
+	if (busiest->group_type != group_misfit_task && no_imbalance) {
 		env->imbalance = 0;
 		if (busiest->group_type == group_overloaded &&
 				local->group_type <= group_misfit_task) {
@@ -10253,7 +10241,7 @@ static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *s
 	}
 
 	/*
-	 * If there aren't any idle cpus, avoid creating some.
+	 * If there aren't any idle CPUs, avoid creating some.
 	 */
 	if (busiest->group_type == group_overloaded &&
 	    local->group_type   == group_overloaded) {
@@ -10267,19 +10255,35 @@ static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *s
 	}
 
 	/*
-	 * We're trying to get all the cpus to the average_load, so we don't
-	 * want to push ourselves above the average load, nor do we wish to
-	 * reduce the max loaded cpu below the average load. At the same time,
-	 * we also don't want to reduce the group load below the group
-	 * capacity. Thus we look for the minimum possible imbalance.
+	 * In case of a misfit task, independent of avg loads we do load balance
+	 * at the parent sched domain level for B.L systems, so it is possible
+	 * that busiest group avg load can be less than sd avg load.
+	 * So skip calculating load based imbalance between groups.
 	 */
-	max_pull = min(busiest->avg_load - sds->avg_load, load_above_capacity);
+	if (!no_imbalance) {
+		/*
+		 * We're trying to get all the cpus to the average_load,
+		 * so we don't want to push ourselves above the average load,
+		 * nor do we wish to reduce the max loaded cpu below the average
+		 * load. At the same time, we also don't want to reduce the
+		 * group load below the group capacity.
+		 * Thus we look for the minimum possible imbalance.
+		 */
+		max_pull = min(busiest->avg_load - sds->avg_load,
+				load_above_capacity);
 
-	/* How much load to actually move to equalise the imbalance */
-	env->imbalance = min(
-		max_pull * busiest->group_capacity,
-		(sds->avg_load - local->avg_load) * local->group_capacity
-	) / SCHED_CAPACITY_SCALE;
+		/* How much load to actually move to equalise the imbalance */
+		env->imbalance = min(max_pull * busiest->group_capacity,
+				     (sds->avg_load - local->avg_load) *
+				     local->group_capacity) /
+				     SCHED_CAPACITY_SCALE;
+	} else {
+		/*
+		 * Skipped load based imbalance calculations, but let's find
+		 * imbalance based on busiest group type or fix small imbalance.
+		 */
+		env->imbalance = 0;
+	}
 
 	/* Boost imbalance to allow misfit task to be balanced.
 	 * Always do this if we are doing a NEWLY_IDLE balance
@@ -10291,10 +10295,11 @@ static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *s
 	 * group is underutilized.
 	 */
 	if (busiest->group_type == group_misfit_task &&
-	    (env->idle == CPU_NEWLY_IDLE ||
-	     local->sum_nr_running < local->group_weight))
+		(env->idle == CPU_NEWLY_IDLE ||
+		local->sum_nr_running < local->group_weight)) {
 		env->imbalance = max_t(long, env->imbalance,
-				     busiest->group_misfit_task);
+				       busiest->group_misfit_task);
+	}
 
 	/*
 	 * if *imbalance is less than the average load per runnable task
