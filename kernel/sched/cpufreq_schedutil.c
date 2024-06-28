@@ -293,7 +293,7 @@ unsigned long schedutil_cpu_util(int cpu, unsigned long util_cfs,
 	unsigned long util, irq, scale;
 	struct rq *rq = cpu_rq(cpu);
 
-	scale = arch_scale_cpu_capacity(cpu);
+	scale = arch_scale_cpu_capacity(NULL, cpu);
 
 	/*
 	 * Early check to see if IRQ/steal time saturates the CPU, can be
@@ -552,7 +552,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	bool busy;
         unsigned long boost;
 
-	max_cap = arch_scale_cpu_capacity(sg_cpu->cpu);
+	max_cap = arch_scale_cpu_capacity(NULL, sg_cpu->cpu);
 
 	sugov_iowait_boost(sg_cpu, time, flags);
 	sg_cpu->last_update = time;
@@ -602,7 +602,7 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 	unsigned long util = 0, max_cap;
 	unsigned int j;
 
-	max_cap = arch_scale_cpu_capacity(sg_cpu->cpu);
+	max_cap = arch_scale_cpu_capacity(NULL, sg_cpu->cpu);
 
 	for_each_cpu(j, policy->cpus) {
 		struct sugov_cpu *j_sg_cpu = &per_cpu(sugov_cpu, j);
