@@ -104,6 +104,24 @@ LDFLAGS		+= -EL $(call ld-option, -maarch64elf, -maarch64linux)
 UTS_MACHINE	:= aarch64
 endif
 
+ifeq ($(cc-name),clang)
+# Optimize for CPU - CLANG
+KBUILD_CFLAGS += $(call cc-option,-march=armv8-a+crypto+crc,) $(call cc-option,-mcpu=cortex-a55+crypto+crc,)
+
+# Cortex-A55 optimizations
+arch-$(CONFIG_ARCH_SDM845)  := $(call cc-option,-mcpu=cortex-a55+crc+crypto,-march=armv8-a+crc+crypto)
+tune-$(CONFIG_ARCH_SDM845)  := -mtune=cortex-a55
+else
+# Optimize for CPU - GCC
+KBUILD_CFLAGS += $(call cc-option,-march=armv8-a+crypto+crc,) $(call cc-option,-mcpu=cortex-a75.cortex-a55+crypto+crc,)
+
+# Cortex-A75.A55 optimizations
+arch-$(CONFIG_ARCH_SDM845)  := $(call cc-option,-mcpu=cortex-a75.cortex-a55+crc+crypto,-march=armv8-a+crc+crypto)
+tune-$(CONFIG_ARCH_SDM845)  := -mtune=cortex-a75.cortex-a55
+endif
+KBUILD_CFLAGS += $(arch-y) $(tune-y)
+KBUILD_AFLAGS += $(arch-y) $(tune-y)
+
 CHECKFLAGS	+= -D__aarch64__
 
 ifeq ($(CONFIG_ARM64_MODULE_CMODEL_LARGE), y)
