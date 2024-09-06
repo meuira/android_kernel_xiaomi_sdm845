@@ -15,6 +15,7 @@
 #include <uapi/linux/android/binderfs.h>
 #include <uapi/linux/eventpoll.h>
 #include "binder_alloc.h"
+#include "dbitmap.h"
 
 #define ida_alloc_max(a, b, c) ida_simple_get(a, 0, b + 1, c)
 #define ida_free ida_remove
@@ -366,6 +367,8 @@ enum binder_prio_state {
  * @nodes:                rbtree of binder nodes associated with
  *                        this proc ordered by node->ptr
  *                        (protected by @inner_lock)
+ * @dmap                  dbitmap to manage available reference descriptors
+ *                        (protected by @outer_lock)
  * @refs_by_desc:         rbtree of refs ordered by ref->desc
  *                        (protected by @outer_lock)
  * @refs_by_node:         rbtree of refs ordered by ref->node
@@ -450,6 +453,7 @@ struct binder_proc {
 	bool sync_recv;
 	bool async_recv;
 	wait_queue_head_t freeze_wait;
+	struct dbitmap dmap;
 
 	struct list_head todo;
 	struct binder_stats stats;
