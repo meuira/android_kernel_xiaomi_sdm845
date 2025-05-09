@@ -15,6 +15,7 @@
 #include <linux/tick.h>
 #include <linux/slab.h>
 #include <linux/sched_energy.h>
+#include <linux/bitops.h>
 
 #include "cpupri.h"
 #include "cpudeadline.h"
