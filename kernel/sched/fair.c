@@ -143,12 +143,12 @@ enum sched_tunable_scaling sysctl_sched_tunable_scaling
 
 /*
  * Minimal preemption granularity for CPU-bound tasks:
- * (BORE default: 3 msec constant, units: nanoseconds)
+ * (BORE default: 5 msec constant, units: nanoseconds)
  * (CFS  default: 0.75 msec * (1 + ilog(ncpus)), units: nanoseconds)
  */
 #ifdef CONFIG_SCHED_BORE
-unsigned int sysctl_sched_min_granularity			= 3000000ULL;
-unsigned int normalized_sysctl_sched_min_granularity	= 3000000ULL;
+unsigned int sysctl_sched_min_granularity			= 5000000ULL;
+unsigned int normalized_sysctl_sched_min_granularity	= 5000000ULL;
 #else // CONFIG_SCHED_BORE
 unsigned int sysctl_sched_min_granularity = 500000ULL;
 unsigned int normalized_sysctl_sched_min_granularity = 500000ULL;
