@@ -1715,6 +1715,9 @@ static ssize_t disksize_store(struct device *dev,
 	struct zcomp *comp;
 	struct zram *zram = dev_to_zram(dev);
 	int err;
+#ifdef CONFIG_ZRAM_SIZE_OVERRIDE
+	static bool zram_size_set_once;
+#endif
 
 #ifndef CONFIG_ZRAM_SIZE_OVERRIDE
 	disksize = memparse(buf, NULL);
@@ -1732,12 +1735,19 @@ static ssize_t disksize_store(struct device *dev,
 	}
 
 #ifndef CONFIG_ZRAM_SIZE_OVERRIDE
-	disksize = memparse(buf, NULL);
+	disksize = PAGE_ALIGN(disksize);
 	if (!disksize)
 		return -EINVAL;
 #else
-	disksize = (u64)SZ_1 * CONFIG_ZRAM_SIZE_OVERRIDE;
-	pr_info("Overriding zram size to %li", disksize);
+	if (!zram_size_set_once) {
+		disksize = (u64)SZ_1 * CONFIG_ZRAM_SIZE_OVERRIDE;
+		zram_size_set_once = true;
+		pr_info("Overriding zram size to %li", disksize);
+	} else {
+		disksize = PAGE_ALIGN(disksize);
+		if (!disksize)
+			return -EINVAL;
+	}
 #endif
 	if (!zram_meta_alloc(zram, disksize)) {
 		err = -ENOMEM;
