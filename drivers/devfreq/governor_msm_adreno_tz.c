@@ -512,7 +512,7 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 	}
 
 	// AP: Tweak 27 MHz frequency to be used a bit more
-	if ((val == 0) && (level == 5) &&	// (5 = 180 MHz step)
+	if ((val == 0) && (level == 7) &&	// (7 = 100 MHz step)
 		((priv->bin.busy_time * 100 / priv->bin.total_time) < 98))
 		val = 1;
 
@@ -522,7 +522,7 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 #endif
 
 	// AP: Tweak not to peak up when we come from 27 MHz and need to ramp up
-	if ((val < -1) && (level == 6))
+	if ((val < -1) && (level == 8))
 		val = -1;
 
 	// AP: In general we do not ramp up more than 2 steps at once
