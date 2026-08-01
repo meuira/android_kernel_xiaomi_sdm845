@@ -5992,6 +5992,10 @@ static unsigned long cpu_util_without(int cpu, struct task_struct *p)
 #endif
 	unsigned int util;
 
+	if (system_state < SYSTEM_RUNNING) {
+		return capacity_of(cpu);
+	}
+
 #ifdef CONFIG_SCHED_WALT
 	/*
 	 * WALT does not decay idle tasks in the same manner
