@@ -342,7 +342,7 @@ static int compress_lz4(const void *in, void *out, size_t inlen, size_t outlen)
 {
 	int ret;
 
-	ret = lz4_compress(in, inlen, out, &outlen, workspace);
+	ret = LZ4_compress_default(in, out, inlen, outlen, workspace);
 	if (ret) {
 		pr_err("lz4_compress error, ret = %d!\n", ret);
 		return -EIO;
@@ -355,7 +355,7 @@ static int decompress_lz4(void *in, void *out, size_t inlen, size_t outlen)
 {
 	int ret;
 
-	ret = lz4_decompress_unknownoutputsize(in, inlen, out, &outlen);
+	ret = LZ4_decompress_safe(in, out, inlen, outlen);
 	if (ret) {
 		pr_err("lz4_decompress error, ret = %d!\n", ret);
 		return -EIO;
@@ -366,7 +366,7 @@ static int decompress_lz4(void *in, void *out, size_t inlen, size_t outlen)
 
 static void allocate_lz4(void)
 {
-	big_oops_buf_sz = lz4_compressbound(psinfo->bufsize);
+	big_oops_buf_sz = lz4_compressBound(psinfo->bufsize);
 	big_oops_buf = kmalloc(big_oops_buf_sz, GFP_KERNEL);
 	if (big_oops_buf) {
 		workspace = kmalloc(LZ4_MEM_COMPRESS, GFP_KERNEL);

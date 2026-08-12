@@ -417,7 +417,7 @@ extern void sdfat_time_unix2fat(struct sdfat_sb_info *sbi, sdfat_timespec_t *ts,
 extern TIMESTAMP_T *tm_now(struct inode *inode, TIMESTAMP_T *tm);
 static inline TIMESTAMP_T *tm_now_sb(struct super_block *sb, TIMESTAMP_T *tm)
 {
-	struct inode fake_inode;
+	struct inode fake_inode = {};
 
 	fake_inode.i_sb = sb;
 	return tm_now(&fake_inode, tm);
