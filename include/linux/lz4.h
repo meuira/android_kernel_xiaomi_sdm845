@@ -167,7 +167,7 @@ typedef union {
  * Return: Max. size LZ4 may output in a "worst case" szenario
  * (data not compressible)
  */
-static inline int LZ4_compressBound(size_t isize)
+static inline int lz4_compressBound(size_t isize)
 {
 	return LZ4_COMPRESSBOUND(isize);
 }

@@ -14,10 +14,6 @@
 
 #undef TRACE_SYSTEM
 #define TRACE_SYSTEM tracer_pkt
-#undef TRACE_INCLUDE_PATH
-#define TRACE_INCLUDE_PATH .
-#undef TRACE_INCLUDE_FILE
-#define TRACE_INCLUDE_FILE tracer_pkt_private
 
 #include <linux/tracepoint.h>
 
@@ -45,6 +41,12 @@ TRACE_EVENT(tracer_pkt_event,
 		__entry->cc1, __entry->cc2, __entry->cc3, __entry->id)
 );
 #endif /*_TRACER_PKT_TRACE_H*/
+
+#undef TRACE_INCLUDE_PATH
+#define TRACE_INCLUDE_PATH ../../drivers/soc/qcom
+
+#undef TRACE_INCLUDE_FILE
+#define TRACE_INCLUDE_FILE tracer_pkt_private
 
 #include <trace/define_trace.h>
 
