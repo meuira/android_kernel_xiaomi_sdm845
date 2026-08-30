@@ -3500,7 +3500,7 @@ static inline void update_load_avg(struct cfs_rq *cfs_rq, struct sched_entity *s
 {
 	u64 now = cfs_rq_clock_pelt(cfs_rq);
 	int decayed;
-	void *ptr = NULL;
+	void __maybe_unused *ptr = NULL;
 
 	/*
 	 * Track task load average for carrying it to new CPU after migrated, and
@@ -11817,7 +11817,7 @@ static __latent_entropy void run_rebalance_domains(struct softirq_action *h)
  */
 void trigger_load_balance(struct rq *rq)
 {
-	int type = NOHZ_KICK_ANY;
+	int __maybe_unused type = NOHZ_KICK_ANY;
 
 	/* Don't need to rebalance while attached to NULL domain or
 	 * cpu is isolated.
