@@ -558,7 +558,7 @@ void copy_attrs(struct inode *dest, const struct inode *src)
 static int sdcardfs_permission(struct vfsmount *mnt, struct inode *inode, int mask)
 {
 	int err;
-	struct inode tmp;
+	struct inode tmp = {};
 	struct sdcardfs_inode_data *top;
 
 	if (IS_ERR(mnt))
@@ -614,7 +614,7 @@ static int sdcardfs_setattr(struct vfsmount *mnt, struct dentry *dentry, struct 
 	struct path lower_path;
 	struct iattr lower_ia;
 	struct dentry *parent;
-	struct inode tmp;
+	struct inode tmp = {};
 	struct dentry tmp_d;
 	struct sdcardfs_inode_data *top;
 
