@@ -16,6 +16,10 @@
  *
  */
 
+#ifndef NVT_TOUCH_MP
+#define NVT_TOUCH_MP 1
+#endif
+
 #if NVT_TOUCH_MP
 
 static uint32_t IC_X_CFG_SIZE = 18;
