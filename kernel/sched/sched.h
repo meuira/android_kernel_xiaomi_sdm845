@@ -2204,11 +2204,13 @@ cpu_util_freq_walt(int cpu, struct sched_walt_cpu_load *walt_load)
 	return (util >= capacity) ? capacity : util;
 }
 
+#if 0
 static inline unsigned long
 cpu_util_freq(int cpu, struct sched_walt_cpu_load *walt_load)
 {
 	return cpu_util_freq_walt(cpu, walt_load);
 }
+#endif
 
 #else
 
