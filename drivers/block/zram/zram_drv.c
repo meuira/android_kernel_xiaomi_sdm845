@@ -996,7 +996,11 @@ static ssize_t comp_algorithm_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t len)
 {
 	struct zram *zram = dev_to_zram(dev);
+#if 1
+	char compressor[32] = {0};
+#else
 	char compressor[ARRAY_SIZE(zram->compressor)];
+#endif
 	size_t sz;
 
 	strlcpy(compressor, buf, sizeof(compressor));
@@ -1004,6 +1008,12 @@ static ssize_t comp_algorithm_store(struct device *dev,
 	sz = strlen(compressor);
 	if (sz > 0 && compressor[sz - 1] == '\n')
 		compressor[sz - 1] = 0x00;
+
+#if 1
+	if (strcmp(compressor, "lz4") == 0 || strcmp(compressor, "lzo") == 0) {
+		strlcpy(compressor, CONFIG_ZRAM_DEFAULT_COMP_ALGORITHM, sizeof(compressor));
+	}
+#endif
 
 	if (!zcomp_available_algorithm(compressor))
 		return -EINVAL;
@@ -1015,7 +1025,11 @@ static ssize_t comp_algorithm_store(struct device *dev,
 		return -EBUSY;
 	}
 
+#if 1
+	strlcpy(zram->compressor, compressor, sizeof(zram->compressor));
+#else
 	strcpy(zram->compressor, compressor);
+#endif
 	up_write(&zram->init_lock);
 	return len;
 }
