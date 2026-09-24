@@ -2,33 +2,29 @@
 
 set -euo pipefail
 
-# Variable
 KERNEL_DIR="$(pwd)"
 OUT_DIR="${KERNEL_DIR}/out"
 JOBS="$(nproc --all)"
 
-# Toolchain
-CLANG_DIR="${KERNEL_DIR}/llvm-23.1.1-x86_64"
+CLANG_DIR="${KERNEL_DIR}/neutron-clang"
 CLANG_BIN="${CLANG_DIR}/bin"
+ANYKERNEL_DIR="${KERNEL_DIR}/tools/AnyKernel3"
 
-# Path
-DEFCONFIG="miru_defconfig"
-KERNEL_IMAGE="Image.gz-dtb"
-
-# String
 STRING_NAME="Zelinth"
 
-# Arsitektur
+DEFCONFIG="miru_defconfig"
+KERNEL_IMAGE="Image.gz-dtb"
+KERNEL_NAME="Miru-${STRING_NAME}"
 ARCH="arm64"
 
-# Export Environment
+DO_CLEAN="true"
+
 export PATH="${CLANG_BIN}:${PATH}"
 export ARCH="${ARCH}"
 export SUBARCH="${ARCH}"
 export KBUILD_BUILD_USER=miru
 export KBUILD_BUILD_HOST=meuira
 
-# Make Argument
 MAKE_ARGS=(
 	O="${OUT_DIR}"
 	ARCH="${ARCH}"
@@ -52,7 +48,6 @@ MAKE_ARGS=(
 	LOCALVERSION="-${STRING_NAME}"
 )
 
-# Step One: Cleannig Out
 clean_out() {
 	echo "removing folder out"
 	rm -rf "${OUT_DIR}"
@@ -61,15 +56,6 @@ clean_out() {
 	echo "generate out"
 }
 
-# Make Cleaning Out
-clean_out
-echo "Cleaning Success"
-
-# Step Two: Defconfig Generate
-make -C "${KERNEL_DIR}" "${MAKE_ARGS[@]}" "${DEFCONFIG}"
-echo "Defconfig generated successfully"
-
-# Step Three: Build Kernel
 build_kernel() {
 	if [ -f "${OUT_DIR}/.version" ]; then
 		rm "${OUT_DIR}/.version"
@@ -91,5 +77,42 @@ build_kernel() {
 	fi
 }
 
-# Make Build Kernel
-build_kernel
+package_anykernel() {
+	echo "Packaging kernel with AnyKernel3"
+
+	if [ -d "${ANYKERNEL_DIR}" ]; then
+		cd "${ANYKERNEL_DIR}"
+
+		mkdir -p "${OUT_DIR}/zip"
+
+		rm -rf *.zip Image.gz-dtb
+		if [ -f "${OUT_DIR}/arch/${ARCH}/boot/${KERNEL_IMAGE}" ]; then
+			cp "${OUT_DIR}/arch/${ARCH}/boot/${KERNEL_IMAGE}" "${ANYKERNEL_DIR}/"
+
+			ZIP_NAME="${KERNEL_NAME}-Beryllium-$(date +%d%m%Y-%H%M).zip"
+			zip -r9 "${ZIP_NAME}" * -x "*.git*" "README.md"
+
+			mv "${ZIP_NAME}" "${OUT_DIR}/zip/"
+			echo "SUCCESS: File ${ZIP_NAME} is in out/zip/ directory!"
+		else
+			echo "ERROR: File ${KERNEL_IMAGE} not found!"
+			exit 1
+		fi
+	else
+		echo "ERROR: File not found ${ANYKERNEL_DIR}!"
+		exit 1
+	fi
+}
+
+main() {
+	if [ "${DO_CLEAN}" = "true" ]; then
+		clean_out
+	fi
+
+	make -C "${KERNEL_DIR}" "${MAKE_ARGS[@]}" "${DEFCONFIG}"
+
+	build_kernel
+	package_anykernel
+}
+
+main
