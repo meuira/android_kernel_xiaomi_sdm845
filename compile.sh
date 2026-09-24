@@ -8,15 +8,19 @@ OUT_DIR="${KERNEL_DIR}/out"
 JOBS="$(nproc --all)"
 
 # Toolchain
-CLANG_DIR="${KERNEL_DIR}/llvm-23.1.1-x86_64"
+CLANG_DIR="${KERNEL_DIR}/neutron-clang"
 CLANG_BIN="${CLANG_DIR}/bin"
+
+# AnyKernel3 Directory
+ANYKERNEL_DIR="${KERNEL_DIR}/tools/AnyKernel3"
+
+# String
+STRING_NAME="Zelinth"
 
 # Path
 DEFCONFIG="miru_defconfig"
 KERNEL_IMAGE="Image.gz-dtb"
-
-# String
-STRING_NAME="Zelinth"
+KERNEL_NAME="Miru-${STRING_NAME}"
 
 # Arsitektur
 ARCH="arm64"
@@ -93,3 +97,29 @@ build_kernel() {
 
 # Make Build Kernel
 build_kernel
+
+# Step Four: Package with AnyKernel3
+echo "Packaging kernel with AnyKernel3"
+if [ -d "${ANYKERNEL_DIR}" ]; then
+	cd "${ANYKERNEL_DIR}"
+
+	mkdir -p "${OUT_DIR}/zip"
+	echo "${KERNEL_NAME}" > "${OUT_DIR}/kernel_name"
+
+	rm -rf *.zip Image.gz-dtb
+	if [ -f "${OUT_DIR}/arch/${ARCH}/boot/${KERNEL_IMAGE}" ]; then
+		cp "${OUT_DIR}/arch/${ARCH}/boot/${KERNEL_IMAGE}" "${ANYKERNEL_DIR}/"
+
+		ZIP_NAME="${KERNEL_NAME}-Beryllium-$(date +%d%m%Y-%H%M).zip"
+		zip -r9 "${ZIP_NAME}" * -x "*.git*" "README.md"
+
+		mv "${ZIP_NAME}" "${OUT_DIR}/zip/"
+		echo "SUCCESS: File ${ZIP_NAME} is in out/zip/ directory!"
+	else
+		echo "ERROR: File ${KERNEL_IMAGE} not found!"
+		exit 1
+	fi
+else
+	echo "ERROR: File not found ${ANYKERNEL_DIR}!"
+	exit 1
+fi

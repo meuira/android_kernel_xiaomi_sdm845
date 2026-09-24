@@ -1,0 +1,69 @@
+name: Build Kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Setup Environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential perl bc gcc g++ bison flex gawk gperf libssl-dev libelf-dev zip unzip curl git python3 \
+          gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
+
+    - name: Cache Neutron Clang
+      uses: actions/cache@v4
+      with:
+        path: neutron-clang
+        key: neutron-clang-${{ hashFiles('**/antman') }}
+        restore-keys: |
+          neutron-clang-
+
+    - name: Setup Neutron Clang
+      run: |
+        mkdir -p neutron-clang
+        cd neutron-clang
+        if [ ! -f "antman" ]; then
+          curl -LO "https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman"
+          chmod +x antman
+        fi
+        ./antman -S
+        echo "$(pwd)/bin" >> $GITHUB_PATH
+
+    - name: Check Compiler Version
+      run: |
+        clang --version
+        gcc --version
+        ld.lld --version
+
+    - name: Clone AnyKernel3
+      run: |
+        mkdir -p tools
+        git clone --depth=1 https://github.com/meuira/AnyKernel3.git tools/AnyKernel3
+
+    - name: Run Build Script
+      run: |
+        chmod +x compile.sh
+        ./compile.sh
+
+    - name: Build Kernel Release
+      run: |
+         KERNEL_NAME=$(cat out/kernel_name)
+         echo "KERNEL_NAME=${KERNEL_NAME}" >> $GITHUB_ENV
+
+    - name: Upload Kernel Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.KERNEL_NAME }}-ZIPs
+        path: out/zip/*.zip
+        if-no-files-found: error
