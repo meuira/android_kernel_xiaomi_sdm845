@@ -23,7 +23,7 @@ export PATH="${CLANG_BIN}:${PATH}"
 export ARCH="${ARCH}"
 export SUBARCH="${ARCH}"
 export KBUILD_BUILD_USER=miru
-export KBUILD_BUILD_HOST=meuira
+export KBUILD_BUILD_HOST=kali
 
 MAKE_ARGS=(
 	O="${OUT_DIR}"
