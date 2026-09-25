@@ -1,7 +1,15 @@
 name: Build Kernel
 
 on:
+  push:
+    branches: [ "thirteen" ]
+  pull_request:
+    branches: [ "thirteen" ]
   workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
 
 jobs:
   build:
@@ -51,7 +59,7 @@ jobs:
         mkdir -p tools
         git clone --depth=1 https://github.com/meuira/AnyKernel3.git tools/AnyKernel3
 
-    - name: Run Build Script
+    - name: Run Compile Script
       run: |
         chmod +x compile.sh
         ./compile.sh
