@@ -1,0 +1,55 @@
+name: Sync Baseband-guard
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+         ref: thirteen
+         submodules: recursive
+         fetch-depth: 0
+         token: ${{ secrets.PAT_TOKEN }}
+
+    - name: Sync Baseband-guard Repository
+      run: |
+        git config user.name "GitHub"
+        git config user.email "noreply@github.com"
+
+        cd Baseband-guard
+        git fetch origin main
+
+        CURRENT_COMMIT=$(git rev-parse HEAD)
+        TARGET_COMMIT=$(git rev-parse FETCH_HEAD)
+
+        if [ "$CURRENT_COMMIT" != "$TARGET_COMMIT" ]; then
+          echo "Updates found: $CURRENT_COMMIT -> $TARGET_COMMIT"
+
+          COMMITS=$(git log --reverse --format="%H" ${CURRENT_COMMIT}..${TARGET_COMMIT})
+
+          for COMMIT in $COMMITS; do
+            echo "Syncing commit: $COMMIT"
+            git checkout $COMMIT
+
+            RAW_MSG=$(git log -1 --pretty=format:"%B" $COMMIT)
+            AUTHOR_NAME=$(git log -1 --pretty=format:"%an" $COMMIT)
+            AUTHOR_EMAIL=$(git log -1 --pretty=format:"%ae" $COMMIT)
+            COMMIT_MSG=$(echo "$RAW_MSG" | sed -E 's/#([0-9]+)/vc-teahouse\/Baseband-guard#\1/g')
+
+            cd ..
+            git add Baseband-guard
+            git commit --author="$AUTHOR_NAME <$AUTHOR_EMAIL>" -m "$COMMIT_MSG"
+            git push origin thirteen
+            sleep 10
+
+            cd Baseband-guard
+          done
+        else
+          echo "Updates not found in Baseband-guard!"
+        fi
