@@ -130,3 +130,6 @@ out
 AnyKernel3
 toolchain
 log.txt
+
+# Baseband-guard
+genheaders
