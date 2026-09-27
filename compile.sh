@@ -48,6 +48,11 @@ MAKE_ARGS=(
 	LOCALVERSION="-${STRING_NAME}"
 )
 
+hard_clean() {
+	make mrproper
+	make clean
+}
+
 clean_out() {
 	echo "removing folder out"
 	rm -rf "${OUT_DIR}"
@@ -110,6 +115,8 @@ package_anykernel() {
 }
 
 main() {
+	hard_clean
+
 	if [ "${DO_CLEAN}" = "true" ]; then
 		clean_out
 	fi
