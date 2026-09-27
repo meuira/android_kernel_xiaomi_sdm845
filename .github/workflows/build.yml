@@ -64,6 +64,10 @@ jobs:
         chmod +x compile.sh
         ./compile.sh
 
+    - name: Check Submodule Status
+      run: |
+        git submodule status
+
     - name: Upload Kernel Artifact
       uses: actions/upload-artifact@v4
       with:

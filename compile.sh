@@ -77,6 +77,11 @@ build_kernel() {
 	fi
 }
 
+check_kernel_version() {
+	echo "Checking kernel version from vmlinux.o"
+	strings "${OUT_DIR}/vmlinux.o" | grep -E "Linux version"
+}
+
 package_anykernel() {
 	echo "Packaging kernel with AnyKernel3"
 
@@ -112,6 +117,7 @@ main() {
 	make -C "${KERNEL_DIR}" "${MAKE_ARGS[@]}" "${DEFCONFIG}"
 
 	build_kernel
+	check_kernel_version
 	package_anykernel
 }
 
