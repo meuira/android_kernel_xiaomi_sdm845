@@ -11,6 +11,9 @@ CLANG_BIN="${CLANG_DIR}/bin"
 ANYKERNEL_DIR="${KERNEL_DIR}/tools/AnyKernel3"
 
 STRING_NAME="Zelinth"
+STRING_DEV="Dev"
+
+MAKE_DEV="true"
 
 DEFCONFIG="miru_defconfig"
 KERNEL_IMAGE="Image.gz-dtb"
@@ -24,6 +27,12 @@ export ARCH="${ARCH}"
 export SUBARCH="${ARCH}"
 export KBUILD_BUILD_USER=miru
 export KBUILD_BUILD_HOST=kali
+
+if [ "${MAKE_DEV:-false}" = "true" ]; then
+	LOCALVERSION="-${STRING_NAME}-${STRING_DEV}"
+else
+	LOCALVERSION="-${STRING_NAME}"
+fi
 
 MAKE_ARGS=(
 	O="${OUT_DIR}"
@@ -45,7 +54,7 @@ MAKE_ARGS=(
 	CROSS_COMPILE="aarch64-linux-gnu-"
 	CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
 	CLANG_TRIPLE="aarch64-linux-gnu-"
-	LOCALVERSION="-${STRING_NAME}"
+	LOCALVERSION="${LOCALVERSION}"
 )
 
 hard_clean() {
