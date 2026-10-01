@@ -29,6 +29,16 @@ jobs:
         sudo apt-get install -y build-essential perl bc gcc g++ bison flex gawk gperf libssl-dev libelf-dev zip unzip curl git python3 \
           gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
 
+    - name: Setup Fastfetch
+      run: |
+        sudo add-apt-repository ppa:zhangsongcui3371/fastfetch -y
+        sudo apt-get update
+        sudo apt-get install -y fastfetch
+
+    - name: Fastfetch validation
+      run: |
+        fastfetch
+
     - name: Cache Neutron Clang
       uses: actions/cache@v4
       with:
