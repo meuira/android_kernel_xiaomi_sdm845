@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -20,6 +20,7 @@ KERNEL_IMAGE="Image.gz-dtb"
 KERNEL_NAME="Miru-${STRING_NAME}"
 ARCH="arm64"
 
+VARIANT="dynamic"
 DO_CLEAN="true"
 
 export PATH="${CLANG_BIN}:${PATH}"
@@ -70,6 +71,36 @@ clean_out() {
 	echo "generate out"
 }
 
+apply_fstab_variant() {
+	if [ "${VARIANT}" = "dynamic" ]; then
+		echo "Used default Dynamic partition."
+		return
+	fi
+
+	local FSTAB_PATCH
+	if [ "${VARIANT}" = "nse" ]; then
+		echo "Applying fstab Non System Ext"
+		FSTAB_PATCH="${KERNEL_DIR}/arch/arm64/boot/dts/qcom/sdm845-xiaomi-common_non_system_ext.patch"
+	fi
+
+	if [ ! -f "${FSTAB_PATCH}" ]; then
+		echo "Fstab patch not found: ${FSTAB_PATCH}"
+		exit 1
+	fi
+
+	patch -p1 -d "${KERNEL_DIR}" < "${FSTAB_PATCH}"
+
+	echo "Fstab ${VARIANT} variant is applied"
+}
+
+restore_fstab_variant() {
+	if [ "${VARIANT}" = "dynamic" ]; then
+		return
+	fi
+	echo "Restoring default fstab"
+	git checkout -- "${KERNEL_DIR}/arch/arm64/boot/dts/qcom/sdm845-xiaomi-common.dtsi" 2>/dev/null || true
+}
+
 build_kernel() {
 	if [ -f "${OUT_DIR}/.version" ]; then
 		rm "${OUT_DIR}/.version"
@@ -92,7 +123,8 @@ build_kernel() {
 }
 
 package_anykernel() {
-	echo "Packaging kernel with AnyKernel3"
+	local variant="${1:-dynamic}"
+	echo "Packaging kernel with AnyKernel3 (${variant})"
 
 	if [ -d "${ANYKERNEL_DIR}" ]; then
 		cd "${ANYKERNEL_DIR}"
@@ -103,7 +135,7 @@ package_anykernel() {
 		if [ -f "${OUT_DIR}/arch/${ARCH}/boot/${KERNEL_IMAGE}" ]; then
 			cp "${OUT_DIR}/arch/${ARCH}/boot/${KERNEL_IMAGE}" "${ANYKERNEL_DIR}/"
 
-			ZIP_NAME="${KERNEL_NAME}-Beryllium-$(date +%d%m%Y-%H%M).zip"
+			ZIP_NAME="${KERNEL_NAME}-${variant}-Beryllium-$(date +%d%m%Y-%H%M).zip"
 			zip -r9 "${ZIP_NAME}" * -x "*.git*" "README.md"
 
 			mv "${ZIP_NAME}" "${OUT_DIR}/zip/"
@@ -118,17 +150,65 @@ package_anykernel() {
 	fi
 }
 
+run_release_builds() {
+	echo "Starting Variant Release Builds"
+	clean_out
+	make -C "${KERNEL_DIR}" "${MAKE_ARGS[@]}" "${DEFCONFIG}"
+
+	local -a release_commands=(
+		"--dynamic"
+		"--nse"
+	)
+
+	for release_command in "${release_commands[@]}"; do
+		local -a release_args=()
+		read -r -a release_args <<< "${release_command}"
+
+		echo "Running build with args: ${release_args[*]}"
+		"${KERNEL_DIR}/compile.sh" "${release_args[@]}" --dirty
+	done
+}
+
 main() {
-	hard_clean
+	for arg in "$@"; do
+		if [ "${arg}" = "--release" ]; then
+			run_release_builds
+			exit 0
+		fi
+	done
+
+	for arg in "$@"; do
+		case "${arg}" in
+			--nse)
+			    VARIANT="nse"
+			    ;;
+			--dynamic)
+			    VARIANT="dynamic"
+			    ;;
+			--clean)
+			    DO_CLEAN="true"
+			    ;;
+			--dirty)
+			    DO_CLEAN="false"
+			    ;;
+		   *)
+			echo "Unknown option: ${arg}"
+			exit 1
+			;;
+		esac
+	done
+
+	trap 'restore_fstab_variant' EXIT
 
 	if [ "${DO_CLEAN}" = "true" ]; then
+		hard_clean
 		clean_out
 	fi
 
 	make -C "${KERNEL_DIR}" "${MAKE_ARGS[@]}" "${DEFCONFIG}"
-
+	apply_fstab_variant
 	build_kernel
-	package_anykernel
+	package_anykernel "${VARIANT}"
 }
 
-main
+main "$@"

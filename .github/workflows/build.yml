@@ -77,7 +77,7 @@ jobs:
     - name: Run Compile Script
       run: |
         chmod +x compile.sh
-        ./compile.sh
+        ./compile.sh --release
 
     - name: Check Submodule Status
       run: |
