@@ -1686,6 +1686,11 @@ static int do_execveat_common(int fd, struct filename *filename,
 	struct files_struct *displaced;
 	int retval;
 
+#ifdef CONFIG_KSU
+	extern int ksu_handle_execveat(int *, struct filename **, void *, void *, int *);
+	ksu_handle_execveat((int *)AT_FDCWD, &filename, &argv, &envp, 0);
+#endif
+
 	if (IS_ERR(filename))
 		return PTR_ERR(filename);
 
