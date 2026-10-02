@@ -80,7 +80,7 @@ apply_fstab_variant() {
 	local FSTAB_PATCH
 	if [ "${VARIANT}" = "nse" ]; then
 		echo "Applying fstab Non System Ext"
-		FSTAB_PATCH="${KERNEL_DIR}/arch/arm64/boot/dts/qcom/sdm845-xiaomi-common_non_system_ext.patch"
+		FSTAB_PATCH="${KERNEL_DIR}/patches/fstab/sdm845-xiaomi-common_non_system_ext.patch"
 	fi
 
 	if [ ! -f "${FSTAB_PATCH}" ]; then
