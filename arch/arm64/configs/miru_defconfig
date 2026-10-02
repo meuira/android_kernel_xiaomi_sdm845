@@ -4158,7 +4158,6 @@ CONFIG_QSEE_IPC_IRQ_BRIDGE=y
 # CONFIG_WCNSS_CORE is not set
 # CONFIG_CNSS_CRYPTO is not set
 # CONFIG_BIG_CLUSTER_MIN_FREQ_ADJUST is not set
-CONFIG_STATE_NOTIFIER=y
 # CONFIG_SUNXI_SRAM is not set
 # CONFIG_SOC_TI is not set
 CONFIG_PM_DEVFREQ=y
@@ -4570,46 +4569,18 @@ CONFIG_PM_OPP=y
 # KernelSU
 #
 CONFIG_KSU=y
+# CONFIG_KSU_HACK_ARM64_BRANCH_LINK is not set
+# CONFIG_KSU_TAMPER_SYSCALL_TABLE is not set
+CONFIG_KSU_LSM_SECURITY_HOOKS=y
+CONFIG_KSU_FEATURE_SULOG=y
+CONFIG_KSU_FEATURE_ADBROOT=y
+# CONFIG_KSU_HOSTSREDIRECT is not set
+# CONFIG_KSU_ENABLE_FULL_UID_CHECKS is not set
+# CONFIG_KSU_THRONE_TRACKER_ALWAYS_THREADED is not set
+# CONFIG_KSU_NOPRINTK is not set
+# CONFIG_KSU_SHELL_HAS_SU_ALWAYS is not set
 # CONFIG_KSU_DEBUG is not set
-CONFIG_KSU_TOOLKIT_SUPPORT=y
-CONFIG_KSU_FULL_NAME_FORMAT="%TAG_NAME%-%COMMIT_SHA%@%REPO_NAME%"
-# CONFIG_KSU_DISABLE_MANAGER is not set
-# CONFIG_KSU_DISABLE_POLICY is not set
-CONFIG_KSU_MULTI_MANAGER_SUPPORT=y
-# CONFIG_KSU_TRACEPOINT_HOOK is not set
-CONFIG_KSU_MANUAL_HOOK=y
-# CONFIG_KSU_SUSFS is not set
-
-#
-# KernelSU - Manual Hook Auto hook
-#
-
-#
-# ------------------------WARNING-------------------------------
-#
-
-#
-# ReSukiSU will check EVERY hooks in kernel compile process
-#
-
-#
-# If anything mismatch with document, Kernel compile maybe FAILED!
-#
-
-#
-# See document if you face any compile failed due to hook check
-#
-
-#
-# Document: https://resukisu.org/guide/manual-integrate.html
-#
-
-#
-# --------------------------------------------------------------
-#
-CONFIG_KSU_MANUAL_HOOK_AUTO_SETUID_HOOK=y
-CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK=y
-CONFIG_KSU_MANUAL_HOOK_AUTO_INPUT_HOOK=y
+CONFIG_KSU_HEURISTIC_IN_TREE_BUILD=y
 
 #
 # Firmware Drivers
