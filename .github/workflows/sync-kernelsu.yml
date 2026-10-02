@@ -23,7 +23,7 @@ jobs:
         git config user.email "noreply@github.com"
 
         cd KernelSU
-        git fetch origin main
+        git fetch origin master
 
         CURRENT_COMMIT=$(git rev-parse HEAD)
         TARGET_COMMIT=$(git rev-parse FETCH_HEAD)
@@ -40,7 +40,7 @@ jobs:
             RAW_MSG=$(git log -1 --pretty=format:"%B" $COMMIT)
             AUTHOR_NAME=$(git log -1 --pretty=format:"%an" $COMMIT)
             AUTHOR_EMAIL=$(git log -1 --pretty=format:"%ae" $COMMIT)
-            COMMIT_MSG=$(echo "$RAW_MSG" | sed -E 's/#([0-9]+)/ReSukiSU\/ReSukiSU#\1/g')
+            COMMIT_MSG=$(echo "$RAW_MSG" | sed -E 's/#([0-9]+)/backslashxx\/KernelSU#\1/g')
 
             cd ..
             git add KernelSU
