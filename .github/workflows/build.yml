@@ -2,9 +2,9 @@ name: Build Kernel
 
 on:
   push:
-    branches: [ "thirteen" ]
+    branches: [ "staging" ]
   pull_request:
-    branches: [ "thirteen" ]
+    branches: [ "staging" ]
   workflow_dispatch:
 
 permissions:
