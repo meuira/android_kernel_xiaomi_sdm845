@@ -25,6 +25,8 @@ GPU_FREQ="710"
 VARIANT="dynamic"
 DO_CLEAN="true"
 
+export TZ='Asia/Jakarta'
+
 export PATH="${CLANG_BIN}:${PATH}"
 export ARCH="${ARCH}"
 export SUBARCH="${ARCH}"
