@@ -108,6 +108,11 @@ apply_fstab_variant() {
 	fi
 
 	local FSTAB_PATCH
+	if [ "${VARIANT}" = "se" ]; then
+		echo "Applying fstab System Ext"
+		FSTAB_PATCH="${KERNEL_DIR}/patches/fstab/sdm845-xiaomi-common_system_ext.patch"
+	fi
+
 	if [ "${VARIANT}" = "nse" ]; then
 		echo "Applying fstab Non System Ext"
 		FSTAB_PATCH="${KERNEL_DIR}/patches/fstab/sdm845-xiaomi-common_non_system_ext.patch"
@@ -162,6 +167,8 @@ package_anykernel() {
 		current_kernel_name="${current_kernel_name}-Dynamic-GPU-${freq}"
 	elif [ "${variant}" = "nse" ]; then
 		current_kernel_name="${current_kernel_name}-NSE-GPU-${freq}"
+	elif [ "${variant}" = "se" ]; then
+		current_kernel_name="${current_kernel_name}-SE-GPU-${freq}"
 	fi
 
 	if [ -d "${ANYKERNEL_DIR}" ]; then
@@ -202,6 +209,10 @@ run_release_builds() {
 		"--nse --802"
 		"--nse --820"
 		"--nse --835"
+		"--se --710"
+		"--se --802"
+		"--se --820"
+		"--se --835"
 	)
 
 	for release_command in "${release_commands[@]}"; do
@@ -234,6 +245,9 @@ main() {
 			    ;;
 			--835)
 			    GPU_FREQ="835"
+			    ;;
+			--se)
+			    VARIANT="se"
 			    ;;
 			--nse)
 			    VARIANT="nse"
