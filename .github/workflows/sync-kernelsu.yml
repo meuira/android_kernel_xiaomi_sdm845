@@ -2,8 +2,6 @@ name: Sync KernelSU
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '12 */4 * * *'
 
 jobs:
   sync:
