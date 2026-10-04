@@ -1749,7 +1749,7 @@ static ssize_t disksize_store(struct device *dev,
 		 */
 		if (!zram_auto_size_applied) {
 		unsigned long total_ram_mb =
-		totalram_pages * (PAGE_SIZE / 1024) / 1024;
+		totalram_pages() * (PAGE_SIZE / 1024) / 1024;
 
 		if (total_ram_mb > 10000) {
 			disksize = 6ULL * SZ_1G;
