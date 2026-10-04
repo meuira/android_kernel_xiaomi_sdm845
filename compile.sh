@@ -13,7 +13,7 @@ ANYKERNEL_DIR="${KERNEL_DIR}/tools/AnyKernel3"
 STRING_NAME="Zelinth"
 STRING_DEV="Dev"
 
-MAKE_DEV="true"
+MAKE_DEV="false"
 
 DEFCONFIG="miru_defconfig"
 KERNEL_IMAGE="Image.gz-dtb"
