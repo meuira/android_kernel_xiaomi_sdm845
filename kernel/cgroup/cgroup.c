@@ -56,8 +56,10 @@
 #include <linux/nsproxy.h>
 #include <linux/file.h>
 #include <linux/psi.h>
+#if 0
 #include <linux/binfmts.h>
 #include <linux/cpu_input_boost.h>
+#endif
 #include <net/sock.h>
 
 #define CREATE_TRACE_POINTS
@@ -2765,11 +2767,13 @@ void cgroup_procs_write_finish(struct task_struct *task)
 	struct cgroup_subsys *ss;
 	int ssid;
 
+#if 0
 	/* This covers boosting for app launches and app transitions */
 	if (!ret && !threadgroup &&
 	    !strcmp(of->kn->parent->name, "top-app") &&
 	    task_is_zygote(tsk->parent))
 		cpu_input_boost_kick_max(1000);
+#endif
 
 	/* release reference from cgroup_procs_write_start() */
 	put_task_struct(task);
