@@ -1202,7 +1202,7 @@ uclamp_update_active_tasks(struct cgroup_subsys_state *css)
 	struct css_task_iter it;
 	struct task_struct *p;
 
-	css_task_iter_start(css, &it);
+	css_task_iter_start(css, 0, &it);
 	while ((p = css_task_iter_next(&it)))
 		uclamp_update_active(p);
 	css_task_iter_end(&it);
