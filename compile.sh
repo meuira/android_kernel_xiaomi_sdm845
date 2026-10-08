@@ -31,7 +31,7 @@ export PATH="${CLANG_BIN}:${PATH}"
 export ARCH="${ARCH}"
 export SUBARCH="${ARCH}"
 export KBUILD_BUILD_USER=miru
-export KBUILD_BUILD_HOST=kali
+export KBUILD_BUILD_HOST=archlinux
 
 if [ "${MAKE_DEV:-false}" = "true" ]; then
 	LOCALVERSION="-${STRING_NAME}-${STRING_DEV}"
