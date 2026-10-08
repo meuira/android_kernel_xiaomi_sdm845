@@ -10,7 +10,7 @@ CLANG_DIR="${KERNEL_DIR}/neutron-clang"
 CLANG_BIN="${CLANG_DIR}/bin"
 ANYKERNEL_DIR="${KERNEL_DIR}/tools/AnyKernel3"
 
-STRING_NAME="Zelinth"
+STRING_NAME="Valthera-Rc1"
 STRING_DEV="Dev"
 
 MAKE_DEV="false"
