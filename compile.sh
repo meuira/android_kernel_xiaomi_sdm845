@@ -202,15 +202,12 @@ run_release_builds() {
 
 	local -a release_commands=(
 		"--dynamic --710"
-		"--dynamic --802"
 		"--dynamic --820"
 		"--dynamic --835"
 		"--nse --710"
-		"--nse --802"
 		"--nse --820"
 		"--nse --835"
 		"--se --710"
-		"--se --802"
 		"--se --820"
 		"--se --835"
 	)
@@ -236,9 +233,6 @@ main() {
 		case "${arg}" in
 			--710)
 			    GPU_FREQ="710"
-			    ;;
-			--802)
-			    GPU_FREQ="802"
 			    ;;
 			--820)
 			    GPU_FREQ="820"
