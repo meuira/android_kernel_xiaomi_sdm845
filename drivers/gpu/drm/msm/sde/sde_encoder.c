@@ -40,6 +40,16 @@
 #include "sde_core_irq.h"
 #include "dsi_drm.h"
 
+#include <linux/display_state.h>
+
+bool display_on = true;
+
+bool is_display_on(void)
+{
+	return display_on;
+}
+EXPORT_SYMBOL(is_display_on);
+
 #define SDE_DEBUG_ENC(e, fmt, ...) SDE_DEBUG("enc%d " fmt,\
 		(e) ? (e)->base.base.id : -1, ##__VA_ARGS__)
 
@@ -2963,6 +2973,8 @@ static void sde_encoder_virt_enable(struct drm_encoder *drm_enc)
 	struct drm_display_mode *cur_mode = NULL;
 	struct msm_mode_info mode_info;
 
+	display_on = true;
+
 	if (!drm_enc) {
 		SDE_ERROR("invalid encoder\n");
 		return;
@@ -3162,6 +3174,8 @@ static void sde_encoder_virt_disable(struct drm_encoder *drm_enc)
 	SDE_DEBUG_ENC(sde_enc, "encoder disabled\n");
 
 	sde_rm_release(&sde_kms->rm, drm_enc);
+
+	display_on = false;
 }
 
 static enum sde_intf sde_encoder_get_intf(struct sde_mdss_cfg *catalog,
