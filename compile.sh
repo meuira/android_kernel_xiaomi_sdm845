@@ -11,7 +11,6 @@ CLANG_BIN="${CLANG_DIR}/bin"
 ANYKERNEL_DIR="${KERNEL_DIR}/tools/AnyKernel3"
 
 STRING_NAME="Valthera-Rc2"
-STRING_DEV="Dev"
 
 MAKE_DEV="false"
 
@@ -22,6 +21,7 @@ ARCH="arm64"
 
 GPU_FREQ="710"
 
+KERNELSU="ksu"
 VARIANT="dynamic"
 DO_CLEAN="true"
 
@@ -33,10 +33,10 @@ export SUBARCH="${ARCH}"
 export KBUILD_BUILD_USER=miru
 export KBUILD_BUILD_HOST=archlinux
 
-if [ "${MAKE_DEV:-false}" = "true" ]; then
-	LOCALVERSION="-${STRING_NAME}-${STRING_DEV}"
-else
+if [ "${KERNELSU:-non-ksu}" = "ksu" ]; then
 	LOCALVERSION="-${STRING_NAME}"
+else
+	LOCALVERSION="-${STRING_NAME}-Non-KSU"
 fi
 
 MAKE_ARGS=(
@@ -73,6 +73,22 @@ clean_out() {
 
 	mkdir -p "${OUT_DIR}"
 	echo "generate out"
+}
+
+apply_non_kernelsu() {
+	local TARGET_CONFIG="${OUT_DIR}/.config"
+	echo "Applying Non-KSU configuration"
+	sed -i 's/CONFIG_KSU=y/# CONFIG_KSU is not set/' "${TARGET_CONFIG}"
+
+	make -C "${KERNEL_DIR}" "${MAKE_ARGS[@]}" olddefconfig
+}
+
+restore_default_kernelsu() {
+	local TARGET_CONFIG="${OUT_DIR}/.config"
+	echo "Restoring KSU configuration"
+	sed -i 's/# CONFIG_KSU is not set/CONFIG_KSU=y/' "${TARGET_CONFIG}"
+
+	make -C "${KERNEL_DIR}" "${MAKE_ARGS[@]}" olddefconfig
 }
 
 apply_gpu_freq() {
@@ -160,6 +176,7 @@ build_kernel() {
 package_anykernel() {
 	local variant="${1:-dynamic}"
 	local freq="${2:-710}"
+	local kernelsu="${3:-ksu}"
 	echo "Packaging kernel with AnyKernel3 (${variant}) and GPU freq (${freq})"
 
 	local current_kernel_name="${KERNEL_NAME}"
@@ -169,6 +186,12 @@ package_anykernel() {
 		current_kernel_name="${current_kernel_name}-NSE-GPU-${freq}"
 	elif [ "${variant}" = "se" ]; then
 		current_kernel_name="${current_kernel_name}-SE-GPU-${freq}"
+	fi
+
+	if [ "${kernelsu}" = "ksu" ]; then
+		current_kernel_name="${current_kernel_name}-KSU"
+	else
+		current_kernel_name="${current_kernel_name}-Non-KSU"
 	fi
 
 	if [ -d "${ANYKERNEL_DIR}" ]; then
@@ -201,15 +224,24 @@ run_release_builds() {
 	make -C "${KERNEL_DIR}" "${MAKE_ARGS[@]}" "${DEFCONFIG}"
 
 	local -a release_commands=(
-		"--dynamic --710"
-		"--dynamic --820"
-		"--dynamic --835"
-		"--nse --710"
-		"--nse --820"
-		"--nse --835"
-		"--se --710"
-		"--se --820"
-		"--se --835"
+		"--dynamic --710 --non-ksu"
+		"--dynamic --820 --non-ksu"
+		"--dynamic --835 --non-ksu"
+		"--dynamic --710 --ksu"
+		"--dynamic --820 --ksu"
+		"--dynamic --835 --ksu"
+		"--nse --710 --non-ksu"
+		"--nse --820 --non-ksu"
+		"--nse --835 --non-ksu"
+		"--nse --710 --ksu"
+		"--nse --820 --ksu"
+		"--nse --835 --ksu"
+		"--se --710 --non-ksu"
+		"--se --820 --non-ksu"
+		"--se --835 --non-ksu"
+		"--se --710 --ksu"
+		"--se --820 --ksu"
+		"--se --835 --ksu"
 	)
 
 	for release_command in "${release_commands[@]}"; do
@@ -240,6 +272,12 @@ main() {
 			--835)
 			    GPU_FREQ="835"
 			    ;;
+			--ksu)
+			    KERNELSU="ksu"
+			    ;;
+			--non-ksu)
+			    KERNELSU="non-ksu"
+			    ;;
 			--se)
 			    VARIANT="se"
 			    ;;
@@ -262,7 +300,7 @@ main() {
 		esac
 	done
 
-	trap 'restore_fstab_variant; restore_gpu_freq' EXIT
+	trap 'restore_fstab_variant; restore_gpu_freq; restore_default_kernelsu' EXIT
 
 	if [ "${DO_CLEAN}" = "true" ]; then
 		hard_clean
@@ -272,8 +310,13 @@ main() {
 	make -C "${KERNEL_DIR}" "${MAKE_ARGS[@]}" "${DEFCONFIG}"
 	apply_gpu_freq
 	apply_fstab_variant
+
+	if [ "${KERNELSU}" = "non-ksu" ]; then
+		apply_non_kernelsu
+	fi
+
 	build_kernel
-	package_anykernel "${VARIANT}" "${GPU_FREQ}"
+	package_anykernel "${VARIANT}" "${GPU_FREQ}" "${KERNELSU}"
 }
 
 main "$@"
