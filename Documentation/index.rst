@@ -12,7 +12,7 @@ Contents:
    :maxdepth: 2
 
    kernel-documentation
-   process/index
+   development-process/index
    dev-tools/tools
    driver-api/index
    media/index
